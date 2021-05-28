@@ -3,6 +3,9 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  file_selector_windows
+  printing
+  window_size
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

@@ -10,7 +10,8 @@ class AppSettingsProvider extends ChangeNotifier {
   AppSettings? _appSettings;
 
   Future<void> saveSettings(AppSettings settings) {
-    final _newSettings = SettingService.read().merge(settings);
+    var _oldAppSettings = SettingService.read();
+    final _newSettings = _oldAppSettings.merge(settings);
     _appSettings = _newSettings;
     notifyListeners();
     return SettingService.save(_newSettings);

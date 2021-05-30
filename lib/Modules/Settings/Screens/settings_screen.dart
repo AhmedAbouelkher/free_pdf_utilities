@@ -7,7 +7,19 @@ import 'package:free_pdf_utilities/Screens/root_screen.dart';
 
 import '../settings_provider.dart';
 
+enum SettingsTap {
+  General,
+  ExportOptions,
+  About,
+}
+
 class SettingsScreen extends StatefulWidget {
+  final SettingsTap settingsTap;
+  const SettingsScreen({
+    Key? key,
+    this.settingsTap = SettingsTap.General,
+  }) : super(key: key);
+
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
@@ -22,11 +34,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     CupertinoIcons.folder_badge_person_crop,
   ];
 
-  int _currentTap = 0;
+  late int _currentTap;
 
   @override
   void initState() {
-    _pageController = PageController();
+    _currentTap = SettingsTap.values.indexOf(widget.settingsTap);
+    _pageController = PageController(initialPage: _currentTap);
+
     super.initState();
   }
 
@@ -65,10 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   itemBuilder: (context, index) {
                     final String _tap = _taps[index];
                     return ListTile(
-                      leading: Icon(
-                        _tapsIcons[index],
-                        size: 18,
-                      ),
+                      leading: Icon(_tapsIcons[index], size: 18),
                       title: Text(
                         _tap,
                         style: Theme.of(context).textTheme.subtitle2,
@@ -132,9 +143,9 @@ class ExportOptionsSettingsTap extends StatelessWidget {
     final _appSettings = context.watch<AppSettingsProvider>().appSettings();
 
     void _callOnSave(PDFExportOptions exportOptions) {
-      final _appSettingsUpdated = context.read<AppSettingsProvider>().appSettings();
-      final _options = _appSettingsUpdated.exportOptions!.merge(exportOptions);
-      onSave(AppSettings(exportOptions: _options));
+      // final _appSettingsUpdated = context.read<AppSettingsProvider>().appSettings();
+      // final _options = _appSettingsUpdated.exportOptions!.merge(exportOptions);
+      onSave(AppSettings(exportOptions: exportOptions));
     }
 
     return ListView(

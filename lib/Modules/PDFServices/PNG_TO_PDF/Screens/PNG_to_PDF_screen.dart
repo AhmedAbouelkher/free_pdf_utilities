@@ -1,14 +1,14 @@
 import 'package:draggable_container/draggable_container.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
+import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
+import 'package:provider/provider.dart';
 
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/Providers/pdf_assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
 import 'package:free_pdf_utilities/Screens/root_screen.dart';
-
-import 'package:provider/provider.dart';
 
 class PNGtoPDFScreen extends StatefulWidget {
   @override
@@ -40,7 +40,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CAppBar(
-        title: "PNG to PDF",
+        title: "Images to PDF",
         leading: [
           IconButton(
             onPressed: () {
@@ -71,56 +71,55 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                     return Center(child: Text("Start adding new images to convert..."));
                   }
                   final _images = snapshot.data!;
-                  print(_images.length);
 
-                  WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
-                    if (_images.isNotEmpty && !key.currentState!.editMode && mounted) {
-                      key.currentState?.editMode = true;
-                    }
-                  });
-                  return DraggableContainer<MyItem>(
-                    key: key,
-                    tapOutSideExitEditMode: false,
-                    deleteButtonBuilder: (_, __) => const SizedBox(),
-                    items: List.generate(_images.length, (index) {
-                      return MyItem(index: index, deletable: true, fixed: false, pdfFile: _images[index]);
-                    }),
-                    itemBuilder: (context, rawItem) {
-                      return PDFImageItem(
-                        pdfFile: rawItem!.pdfFile,
-                        onRemove: () {
-                          key.currentState!.removeSlot(rawItem.index);
-                        },
-                      );
-                    },
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 130,
-                      childAspectRatio: 842 / 595,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    padding: const EdgeInsets.all(14.0),
-                    beforeRemove: (item, slotIndex) async {
-                      item = item as MyItem;
-                      final res = await showDialog<bool>(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: Text('Remove item ${item!.index}?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No')),
-                            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text('Yes')),
-                          ],
-                        ),
-                      );
-                      if (res == true) {
-                        // key.currentState!.removeSlot(slotIndex);
-                      }
-                      return false;
-                    },
-                    onChanged: (items) {
-                      print(items);
-                    },
-                  );
+                  // WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+                  //   if (_images.isNotEmpty && !key.currentState!.editMode && mounted) {
+                  //     key.currentState?.editMode = true;
+                  //   }
+                  // });
+                  // return DraggableContainer<MyItem>(
+                  //   key: key,
+                  //   tapOutSideExitEditMode: false,
+                  //   deleteButtonBuilder: (_, __) => const SizedBox(),
+                  //   items: List.generate(_images.length, (index) {
+                  //     return MyItem(index: index, deletable: true, fixed: false, pdfFile: _images[index]);
+                  //   }),
+                  //   itemBuilder: (context, rawItem) {
+                  //     return PDFImageItem(
+                  //       pdfFile: rawItem!.pdfFile,
+                  //       onRemove: () {
+                  //         key.currentState!.removeSlot(rawItem.index);
+                  //       },
+                  //     );
+                  //   },
+                  //   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  //     maxCrossAxisExtent: 130,
+                  //     childAspectRatio: 842 / 595,
+                  //     crossAxisSpacing: 10,
+                  //     mainAxisSpacing: 10,
+                  //   ),
+                  //   padding: const EdgeInsets.all(14.0),
+                  //   beforeRemove: (item, slotIndex) async {
+                  //     item = item as MyItem;
+                  //     final res = await showDialog<bool>(
+                  //       context: context,
+                  //       builder: (_) => AlertDialog(
+                  //         title: Text('Remove item ${item!.index}?'),
+                  //         actions: [
+                  //           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No')),
+                  //           ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text('Yes')),
+                  //         ],
+                  //       ),
+                  //     );
+                  //     if (res == true) {
+                  //       // key.currentState!.removeSlot(slotIndex);
+                  //     }
+                  //     return false;
+                  //   },
+                  //   onChanged: (items) {
+                  //     print(items);
+                  //   },
+                  // );
                   return CupertinoScrollbar(
                     // thickness: 50,
                     // radius: Radius.circular(50),
@@ -190,7 +189,21 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
 
           final _exportOptions = await showDialog(
             context: context,
-            builder: (_) => _PDFExportDialog(),
+            builder: (_) => _PDFExportDialog(
+              onSave: (exportOptions) {
+                context.read<AppSettingsProvider>().saveSettings(AppSettings(exportOptions: exportOptions));
+              },
+              onOpenSettings: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SettingsScreen(
+                      settingsTap: SettingsTap.ExportOptions,
+                    ),
+                  ),
+                );
+              },
+            ),
           );
           if (_exportOptions == null) return;
           await Future.delayed(Duration(milliseconds: 300));
@@ -198,17 +211,12 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           try {
             final _file = await _assetsController.generatePDFDocument(_exportOptions);
             setState(() => _isLoading = false);
-            final _fileName = await _assetsController.exportPDFDocument(_file);
+            await _assetsController.exportPDFDocument(_file);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 duration: Duration(seconds: 4),
                 content: Text.rich(
-                  TextSpan(
-                    text: "Saved to ",
-                    children: [
-                      TextSpan(text: "$_fileName", style: TextStyle(fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                  TextSpan(text: "PDF Saved..."),
                 ),
               ),
             );
@@ -373,6 +381,7 @@ class _PDFImageItemState extends State<PDFImageItem> {
                       style: TextStyle(color: Colors.blue, fontSize: 11),
                     ),
                   ),
+                  Divider(),
                   TextButton(
                     onPressed: widget.onRemove,
                     child: const Text(
@@ -390,25 +399,28 @@ class _PDFImageItemState extends State<PDFImageItem> {
   }
 }
 
-class _PDFExportDialog extends StatefulWidget {
-  @override
-  __PDFExportDialogState createState() => __PDFExportDialogState();
-}
-
-class __PDFExportDialogState extends State<_PDFExportDialog> {
-  late PDFExportOptions _options;
-
-  void _changeOptions(PDFExportOptions newOptions) {
-    _options = _options.merge(newOptions);
-    context.read<AppSettingsProvider>().saveSettings(AppSettings(exportOptions: _options));
-  }
+//TODO: Make the export options persisite relative to ONLY the current process
+class _PDFExportDialog extends StatelessWidget {
+  final ValueChanged<PDFExportOptions> onSave;
+  final VoidCallback? onOpenSettings;
+  const _PDFExportDialog({
+    Key? key,
+    required this.onSave,
+    this.onOpenSettings,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final _appSettings = context.watch<AppSettingsProvider>().appSettings();
-    _options = _appSettings.exportOptions!;
+    final _appSettings = context.read<AppSettingsProvider>().appSettings();
+    final _options = _appSettings.exportOptions!;
+    void _changeOptions(PDFExportOptions newOptions) {
+      final _newOptions = _options.merge(newOptions);
+      onSave(_newOptions);
+    }
+
     return AlertDialog(
       title: Text("Export PDF"),
+      contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0.0),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -457,7 +469,20 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
             onChanged: (pageOrientation) {
               _changeOptions(PDFExportOptions(pageOrientation: pageOrientation));
             },
-          )
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onOpenSettings?.call();
+              },
+              child: Text(
+                "Change defaults...",
+                style: TextStyle(fontSize: 10),
+              ),
+            ),
+          ),
         ],
       ),
       buttonPadding: const EdgeInsets.all(15),

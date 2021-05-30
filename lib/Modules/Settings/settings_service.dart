@@ -16,11 +16,7 @@ class SettingService {
 
   static AppSettings read() {
     final settings = box?.get(SettingService._hiveBoxID);
-    if (settings != null) {
-      return settings;
-    } else {
-      return AppSettings();
-    }
+    return settings ?? const AppSettings();
   }
 
   static Future<AppSettings> reset() async {

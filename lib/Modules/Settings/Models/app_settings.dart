@@ -32,8 +32,8 @@ class AppSettings {
   AppSettings merge(AppSettings? other) {
     if (other == null) return this;
     return copyWith(
-      exportOptions: other.exportOptions,
       themeMode: other.themeMode,
+      exportOptions: (this.exportOptions ?? const PDFExportOptions()).merge(other.exportOptions),
     );
   }
 
@@ -69,8 +69,8 @@ class PDFExportOptions {
   final PageOrientationEnum? pageOrientation;
 
   const PDFExportOptions({
-    this.pageFormat = PdfPageFormatEnum.A4,
-    this.pageOrientation = PageOrientationEnum.Portrait,
+    this.pageFormat,
+    this.pageOrientation,
   });
 
   PDFExportOptions copyWith({

@@ -24,8 +24,9 @@ class _RootScreenState extends State<RootScreen> {
       body: Padding(
         padding: kMainPadding,
         child: ResponsiveGridList(
-          desiredItemWidth: 100,
+          desiredItemWidth: 120,
           minSpacing: 10,
+          squareCells: true,
           children: [
             InkWell(
               onTap: () {
@@ -33,9 +34,8 @@ class _RootScreenState extends State<RootScreen> {
               },
               child: Container(
                 height: 100,
-                alignment: Alignment(0, 0),
-                color: Colors.cyan,
-                child: Text("PNG TO PDF"),
+                decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(8.0)),
+                child: Center(child: Text("IMAGES TO PDF")),
               ),
             )
           ],

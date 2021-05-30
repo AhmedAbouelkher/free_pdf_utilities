@@ -24,6 +24,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  draggable_container:
+    git:
+      url: git://github.com/AhmedAbouelkher/flutter_draggable_container
+      ref: c55710a67ce54a1f2f7f55b9134ea0cd48828b8c
   window_size:
     git:
       url: git://github.com/google/flutter-desktop-embedding.git
@@ -42,13 +46,18 @@ dependencies:
   printing: ^5.2.1
   responsive_grid: ^2.0.0
   dotted_border: ^2.0.0
-  draggable_container: ^1.0.7+2
   shared_preferences: ^2.0.6
+  path: ^1.8.0
+  hive: ^2.0.4
+  hive_flutter: ^1.0.0
+  provider:
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: ^2.0.3
+  hive_generator: ^1.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

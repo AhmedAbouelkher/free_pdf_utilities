@@ -1,9 +1,14 @@
-import 'package:file_selector/file_selector.dart';
+import 'package:draggable_container/draggable_container.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 
 import 'package:free_pdf_utilities/Modules/PDFServices/Providers/pdf_assets_controller.dart';
+import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
 import 'package:free_pdf_utilities/Screens/root_screen.dart';
+
+import 'package:provider/provider.dart';
 
 class PNGtoPDFScreen extends StatefulWidget {
   @override
@@ -11,15 +16,19 @@ class PNGtoPDFScreen extends StatefulWidget {
 }
 
 class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
-  late PDFAssetsController _assetsController;
-
+  late final PDFAssetsController _assetsController;
+  late final GlobalKey<DraggableContainerState<MyItem>> key;
   bool _isLoading = false;
 
   @override
   void initState() {
     _assetsController = PDFAssetsController();
+    key = GlobalKey<DraggableContainerState<MyItem>>();
+
     super.initState();
   }
+
+  // final key = GlobalKey<DraggableContainerState<MyItem>>();
 
   @override
   void dispose() {
@@ -36,33 +45,10 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           IconButton(
             onPressed: () {
               if (_assetsController.isEmptyDocument) return Navigator.pop(context);
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text("Are you sure you want to discard changes?"),
-                  content: Text('This will remove all your pregress so far.'),
-                  buttonPadding: const EdgeInsets.all(15),
-                  actions: <Widget>[
-                    // usually buttons at the bottom of the dialog
-                    TextButton(
-                      child: const Text("Cancel"),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    TextButton(
-                      child: const Text("Confirm", style: TextStyle(color: Colors.red)),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                        // onDelete();
-                      },
-                    ),
-                  ],
-                ),
-              );
+              showDialog(context: context, builder: (_) => _renderDismissAlertDialog());
             },
             splashRadius: 15,
+            iconSize: 15,
             icon: BackButtonIcon(),
           ),
         ],
@@ -71,49 +57,83 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _assetsController.pickImages();
-        },
+        onPressed: () => _assetsController.pickImages(),
         child: Icon(Icons.add),
       ),
       body: SafeArea(
         child: Stack(
           children: [
             Positioned.fill(
-              child: StreamBuilder<List<XFile>>(
+              child: StreamBuilder<List<PDFFile>>(
                 stream: _assetsController.imageStream,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return Center(child: Text("Start adding new images to convert..."));
                   }
-                  final _images = snapshot.data!.map((e) => e.toFile()).toList();
+                  final _images = snapshot.data!;
+                  print(_images.length);
+
+                  WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+                    if (_images.isNotEmpty && !key.currentState!.editMode && mounted) {
+                      key.currentState?.editMode = true;
+                    }
+                  });
+                  return DraggableContainer<MyItem>(
+                    key: key,
+                    tapOutSideExitEditMode: false,
+                    deleteButtonBuilder: (_, __) => const SizedBox(),
+                    items: List.generate(_images.length, (index) {
+                      return MyItem(index: index, deletable: true, fixed: false, pdfFile: _images[index]);
+                    }),
+                    itemBuilder: (context, rawItem) {
+                      return PDFImageItem(
+                        pdfFile: rawItem!.pdfFile,
+                        onRemove: () {
+                          key.currentState!.removeSlot(rawItem.index);
+                        },
+                      );
+                    },
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 130,
+                      childAspectRatio: 842 / 595,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    padding: const EdgeInsets.all(14.0),
+                    beforeRemove: (item, slotIndex) async {
+                      item = item as MyItem;
+                      final res = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: Text('Remove item ${item!.index}?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No')),
+                            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text('Yes')),
+                          ],
+                        ),
+                      );
+                      if (res == true) {
+                        // key.currentState!.removeSlot(slotIndex);
+                      }
+                      return false;
+                    },
+                    onChanged: (items) {
+                      print(items);
+                    },
+                  );
                   return CupertinoScrollbar(
                     // thickness: 50,
                     // radius: Radius.circular(50),
                     isAlwaysShown: true,
                     child: ResponsiveGridList(
-                      desiredItemWidth: 148,
-                      minSpacing: 10,
+                      desiredItemWidth: 140,
+                      minSpacing: 15,
                       children: List.generate(
                         _images.length,
                         (index) {
                           final _image = _images[index];
-                          return InkWell(
-                            onLongPress: () {
-                              _assetsController.removeAt(index);
-                            },
-                            enableFeedback: true,
-                            excludeFromSemantics: true,
-                            onHover: (value) {},
-                            child: Container(
-                              height: 210,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Image.file(_image),
-                            ),
+                          return PDFImageItem(
+                            pdfFile: _image,
                           );
                         },
                       ),
@@ -132,14 +152,38 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
     );
   }
 
+  Widget _renderDismissAlertDialog() {
+    return AlertDialog(
+      title: const Text("Are you sure you want to discard changes?"),
+      content: Text('This will remove all your pregress so far.'),
+      buttonPadding: const EdgeInsets.all(15),
+      actions: <Widget>[
+        // usually buttons at the bottom of the dialog
+        TextButton(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        TextButton(
+          child: const Text("Confirm", style: TextStyle(color: Colors.red)),
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+            // onDelete();
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _renderExportPDFButton() {
-    return StreamBuilder<List<XFile>>(
+    return StreamBuilder<List<PDFFile>>(
       stream: _assetsController.imageStream,
       builder: (context, snapshot) {
-        final _images = snapshot.data?.map((e) => e.toFile()).toList() ?? [];
+        final _images = snapshot.data ?? [];
 
         final bool _canExport = _images.isNotEmpty;
-        print(_canExport);
 
         void _exportPDF() async {
           if (_assetsController.isEmptyDocument) return;
@@ -186,44 +230,207 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   }
 }
 
+class MyItem extends DraggableItem {
+  final Color? color;
+  final int index;
+  final PDFFile pdfFile;
+  bool deletable;
+  bool fixed;
+
+  MyItem({
+    this.color = Colors.black,
+    required this.index,
+    required this.pdfFile,
+    required this.deletable,
+    required this.fixed,
+  });
+
+  @override
+  String toString() {
+    return 'MyItem(index:$index)';
+  }
+}
+
+class PDFImageItem extends StatefulWidget {
+  final PDFFile pdfFile;
+  final VoidCallback? onHoverStart;
+  final VoidCallback? onHoverEnd;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onRemove;
+  final VoidCallback? onPreview;
+
+  const PDFImageItem({
+    Key? key,
+    required this.pdfFile,
+    this.onHoverStart,
+    this.onHoverEnd,
+    this.onTap,
+    this.onLongPress,
+    this.onRemove,
+    this.onPreview,
+  }) : super(key: key);
+
+  @override
+  _PDFImageItemState createState() => _PDFImageItemState();
+}
+
+class _PDFImageItemState extends State<PDFImageItem> {
+  bool _isHoverActive = false;
+
+  void _onHoverStart() {
+    widget.onHoverStart?.call();
+  }
+
+  void _onHoverEnd() {
+    widget.onHoverEnd?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      child: InkWell(
+        hoverColor: Colors.transparent,
+        onTap: widget.onTap ?? () => null,
+        onLongPress: widget.onLongPress,
+        onHover: (value) {
+          value ? _onHoverStart() : _onHoverEnd();
+          setState(() => _isHoverActive = value);
+        },
+        child: Container(
+          height: 210,
+          width: 140,
+          decoration: BoxDecoration(
+            // color: _isHoverActive ? Colors.black : Colors.white,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8.0),
+            boxShadow: [
+              BoxShadow(
+                color: _isHoverActive ? Colors.black : Colors.transparent,
+                spreadRadius: 1,
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.file(widget.pdfFile.file.toFile()),
+              ),
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: kDuration,
+                  opacity: _isHoverActive ? 1.0 : 0.0,
+                  // opacity: 1.0,
+                  child: Visibility(
+                    visible: _isHoverActive,
+                    // visible: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: AnimatedContainer(
+                      duration: kDuration,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
+                        color: Colors.black45,
+                      ),
+                      child: _renderHoverContents(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _renderHoverContents() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(5.0, 12.0, 5.0, 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            widget.pdfFile.name ?? "-",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 10),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: widget.onPreview,
+                    child: const Text(
+                      "Preview",
+                      style: TextStyle(color: Colors.blue, fontSize: 11),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: widget.onRemove,
+                    child: const Text(
+                      "Remove",
+                      style: TextStyle(color: Colors.red, fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PDFExportDialog extends StatefulWidget {
   @override
   __PDFExportDialogState createState() => __PDFExportDialogState();
 }
 
 class __PDFExportDialogState extends State<_PDFExportDialog> {
-  PDFExportOptions _options = const PDFExportOptions();
+  late PDFExportOptions _options;
 
   void _changeOptions(PDFExportOptions newOptions) {
-    _options = _options.merge(other: newOptions);
+    _options = _options.merge(newOptions);
+    context.read<AppSettingsProvider>().saveSettings(AppSettings(exportOptions: _options));
   }
 
   @override
   Widget build(BuildContext context) {
+    final _appSettings = context.watch<AppSettingsProvider>().appSettings();
+    _options = _appSettings.exportOptions!;
     return AlertDialog(
       title: Text("Export PDF"),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PDFExportDropDownListTile<PdfPageFormat>(
+          DropDownListTile<PdfPageFormatEnum>(
             title: "Paper Size",
-            initialValue: PdfPageFormat.a4,
+            initialValue: _options.pageFormat!,
             options: const [
               DropdownMenuItem(
                 child: Text("A3"),
-                value: PdfPageFormat.a3,
+                value: PdfPageFormatEnum.A3,
               ),
               DropdownMenuItem(
                 child: Text("A4"),
-                value: PdfPageFormat.a4,
+                value: PdfPageFormatEnum.A4,
               ),
               DropdownMenuItem(
                 child: Text("A5"),
-                value: PdfPageFormat.a5,
+                value: PdfPageFormatEnum.A5,
               ),
               DropdownMenuItem(
                 child: Text("Letter"),
-                value: PdfPageFormat.letter,
+                value: PdfPageFormatEnum.Letter,
               ),
             ],
             onChanged: (pageFormate) {
@@ -234,17 +441,17 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
             padding: const EdgeInsets.symmetric(vertical: 2.0),
             child: Divider(),
           ),
-          PDFExportDropDownListTile<PageOrientation>(
+          DropDownListTile<PageOrientationEnum>(
             title: "Layout",
-            initialValue: PageOrientation.portrait,
+            initialValue: _options.pageOrientation!,
             options: const [
               DropdownMenuItem(
                 child: Text("Portrait"),
-                value: PageOrientation.portrait,
+                value: PageOrientationEnum.Portrait,
               ),
               DropdownMenuItem(
                 child: Text("Landscape"),
-                value: PageOrientation.landscape,
+                value: PageOrientationEnum.Landscape,
               ),
             ],
             onChanged: (pageOrientation) {
@@ -260,75 +467,14 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
             "Cancel",
             style: TextStyle(fontWeight: FontWeight.normal),
           ),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
         TextButton(
           child: const Text(
             "Export",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          onPressed: () {
-            Navigator.of(context).pop(_options);
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class PDFExportDropDownListTile<T> extends StatefulWidget {
-  final String title;
-  final List<DropdownMenuItem<T>> options;
-  final T initialValue;
-  final ValueChanged<T>? onChanged;
-
-  const PDFExportDropDownListTile({
-    Key? key,
-    required this.title,
-    required this.options,
-    required this.initialValue,
-    this.onChanged,
-  }) : super(key: key);
-  @override
-  _PDFExportDropDownListTileState<T> createState() => _PDFExportDropDownListTileState<T>();
-}
-
-class _PDFExportDropDownListTileState<T> extends State<PDFExportDropDownListTile<T>> {
-  T? _value;
-
-  @override
-  void initState() {
-    _value = widget.initialValue;
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(widget.title, style: TextStyle(fontSize: 13)),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
-          decoration: BoxDecoration(
-            color: Colors.black26,
-            borderRadius: BorderRadius.circular(5),
-          ),
-          child: DropdownButton<T>(
-            underline: Container(),
-            isDense: true,
-            value: _value,
-            iconSize: 18,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-            items: widget.options,
-            onChanged: (value) {
-              if (value == null) return;
-              if (widget.onChanged != null) widget.onChanged!(value);
-              setState(() => _value = value);
-            },
-          ),
+          onPressed: () => Navigator.of(context).pop(_options),
         ),
       ],
     );

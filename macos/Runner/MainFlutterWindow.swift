@@ -7,9 +7,8 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
-
     RegisterGeneratedPlugins(registry: flutterViewController)
-
+    
     // Adding a NSVisualEffectView to act as a translucent background
     let contentView = contentViewController!.view;
     let superView = contentView.superview!;
@@ -19,9 +18,7 @@ class MainFlutterWindow: NSWindow {
     blurView.blendingMode = NSVisualEffectView.BlendingMode.behindWindow
 
     // Pick the correct material for the task
-    if #available(OSX 10.14, *) {
-        blurView.material = NSVisualEffectView.Material.underWindowBackground
-    }
+    blurView.material = NSVisualEffectView.Material.underWindowBackground
 
     // Replace the contentView and the background view
     superView.replaceSubview(contentView, with: blurView)

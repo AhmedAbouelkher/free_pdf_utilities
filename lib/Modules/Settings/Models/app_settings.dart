@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -8,15 +9,15 @@ part 'app_settings.g.dart';
 
 @HiveType(typeId: 0)
 class AppSettings {
-  @HiveField(0, defaultValue: SettingsThemeMode.system)
+  @HiveField(0)
   final String? themeMode;
 
-  @HiveField(1, defaultValue: const PDFExportOptions())
+  @HiveField(1)
   final PDFExportOptions? exportOptions;
 
   const AppSettings({
-    this.themeMode = SettingsThemeMode.system,
-    this.exportOptions = const PDFExportOptions(),
+    this.themeMode,
+    this.exportOptions,
   });
 
   AppSettings copyWith({
@@ -62,10 +63,10 @@ enum PageOrientationEnum {
 }
 
 @HiveType(typeId: 1)
-class PDFExportOptions {
-  @HiveField(0, defaultValue: PdfPageFormatEnum.A4)
+class PDFExportOptions extends ExportOptions {
+  @HiveField(0)
   final PdfPageFormatEnum? pageFormat;
-  @HiveField(1, defaultValue: PageOrientationEnum.Portrait)
+  @HiveField(1)
   final PageOrientationEnum? pageOrientation;
 
   const PDFExportOptions({
@@ -95,7 +96,8 @@ class PDFExportOptions {
   String toString() => 'PDFExportOptions(pageFormat: $pageFormat, pageOrientation: $pageOrientation)';
 }
 
-PdfPageFormat getPdfPageFormat(PdfPageFormatEnum pageFormatEnum) {
+PdfPageFormat? getPdfPageFormat(PdfPageFormatEnum? pageFormatEnum) {
+  if (pageFormatEnum == null) return null;
   switch (pageFormatEnum) {
     case PdfPageFormatEnum.A3:
       return PdfPageFormat.a3;
@@ -109,7 +111,8 @@ PdfPageFormat getPdfPageFormat(PdfPageFormatEnum pageFormatEnum) {
   }
 }
 
-pw.PageOrientation getPageOrientation(PageOrientationEnum pageOrientationEum) {
+pw.PageOrientation? getPageOrientation(PageOrientationEnum? pageOrientationEum) {
+  if (pageOrientationEum == null) return null;
   switch (pageOrientationEum) {
     case PageOrientationEnum.Landscape:
       return pw.PageOrientation.landscape;
@@ -139,7 +142,7 @@ class SettingsThemeMode {
 
   const SettingsThemeMode();
 
-  static ThemeMode getThemeMode(String themeMode) {
+  static ThemeMode getThemeMode(String? themeMode) {
     if (themeMode == SettingsThemeMode.light) {
       return ThemeMode.light;
     } else if (themeMode == SettingsThemeMode.dark) {

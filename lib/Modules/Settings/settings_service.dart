@@ -24,4 +24,8 @@ class SettingService {
     await box?.put(SettingService._hiveBoxID, appSettings);
     return appSettings;
   }
+
+  static Future<void> clearAll() async {
+    await box!.clear();
+  }
 }

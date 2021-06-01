@@ -1,15 +1,18 @@
 import 'package:draggable_container/draggable_container.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/Widgets/pdf_image_item.dart';
 import 'package:provider/provider.dart';
+import 'package:responsive_grid/responsive_grid.dart';
 
-import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_controller.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/Providers/pdf_assets_controller.dart';
+import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
 import 'package:free_pdf_utilities/Screens/root_screen.dart';
 
+//TODO: Impelement images multiselect
 class PNGtoPDFScreen extends StatefulWidget {
   @override
   _PNGtoPDFScreenState createState() => _PNGtoPDFScreenState();
@@ -57,14 +60,14 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _assetsController.pickImages(),
+        onPressed: () => _assetsController.pickFiles(),
         child: Icon(Icons.add),
       ),
       body: SafeArea(
         child: Stack(
           children: [
             Positioned.fill(
-              child: StreamBuilder<List<PDFFile>>(
+              child: StreamBuilder<List<CxFile>>(
                 stream: _assetsController.imageStream,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
@@ -120,7 +123,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                   //     print(items);
                   //   },
                   // );
-                  return CupertinoScrollbar(
+                  return Scrollbar(
                     // thickness: 50,
                     // radius: Radius.circular(50),
                     isAlwaysShown: true,
@@ -133,6 +136,13 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                           final _image = _images[index];
                           return PDFImageItem(
                             pdfFile: _image,
+                            onRemove: () async {
+                              final _result = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => _renderPageRemovalAlertDialog(_image.name ?? "-"),
+                              );
+                              if (_result ?? false) _assetsController.removeAt(index);
+                            },
                           );
                         },
                       ),
@@ -144,10 +154,62 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             if (_isLoading) ...[
               Positioned.fill(child: Container(color: Colors.black54)),
               Center(child: CircularProgressIndicator.adaptive()),
+              for (var i = 1; i <= 25; i++)
+                Center(child: SizedBox(height: 20.0 * i, width: 20.0 * i, child: CircularProgressIndicator())),
             ]
           ],
         ),
       ),
+    );
+  }
+
+  void _showOnFinder(String filePath) {
+    print(filePath);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        content: Row(
+          children: [
+            Text("PDF Saved", style: TextStyle(fontSize: 12, color: Colors.white)),
+            SizedBox(width: 5),
+            TextButton(
+              onPressed: () {
+                CommandLineController.openDocument(filePath);
+              },
+              child: Text(
+                "Open File",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.cyan,
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _renderPageRemovalAlertDialog(String name) {
+    return AlertDialog(
+      title: const Text("Are you sure you want to remove this page?"),
+      content: Text("You are going to remove '$name' permanently..."),
+      buttonPadding: const EdgeInsets.all(15),
+      actions: <Widget>[
+        // usually buttons at the bottom of the dialog
+        TextButton(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        TextButton(
+          child: const Text("Remove", style: TextStyle(color: Colors.red)),
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
+        ),
+      ],
     );
   }
 
@@ -169,7 +231,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           onPressed: () {
             Navigator.of(context).pop();
             Navigator.of(context).pop();
-            // onDelete();
           },
         ),
       ],
@@ -177,7 +238,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   }
 
   Widget _renderExportPDFButton() {
-    return StreamBuilder<List<PDFFile>>(
+    return StreamBuilder<List<CxFile>>(
       stream: _assetsController.imageStream,
       builder: (context, snapshot) {
         final _images = snapshot.data ?? [];
@@ -187,7 +248,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
         void _exportPDF() async {
           if (_assetsController.isEmptyDocument) return;
 
-          final _exportOptions = await showDialog(
+          final _exportOptions = await showDialog<ExportOptions>(
             context: context,
             builder: (_) => _PDFExportDialog(
               onSave: (exportOptions) {
@@ -206,24 +267,17 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             ),
           );
           if (_exportOptions == null) return;
-          await Future.delayed(Duration(milliseconds: 300));
           setState(() => _isLoading = true);
+
           try {
-            final _file = await _assetsController.generatePDFDocument(_exportOptions);
+            final _file = await _assetsController.generateDoument(_exportOptions);
             setState(() => _isLoading = false);
-            await _assetsController.exportPDFDocument(_file);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                duration: Duration(seconds: 4),
-                content: Text.rich(
-                  TextSpan(text: "PDF Saved..."),
-                ),
-              ),
-            );
+            final _filePath = await _assetsController.exportDocument(_file);
+            _showOnFinder(_filePath);
           } catch (e) {
             print(e);
           } finally {
-            if (_isLoading) setState(() => _isLoading = false);
+            if (_isLoading && mounted) setState(() => _isLoading = false);
           }
         }
 
@@ -241,7 +295,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
 class MyItem extends DraggableItem {
   final Color? color;
   final int index;
-  final PDFFile pdfFile;
+  final CxFile pdfFile;
   bool deletable;
   bool fixed;
 
@@ -256,146 +310,6 @@ class MyItem extends DraggableItem {
   @override
   String toString() {
     return 'MyItem(index:$index)';
-  }
-}
-
-class PDFImageItem extends StatefulWidget {
-  final PDFFile pdfFile;
-  final VoidCallback? onHoverStart;
-  final VoidCallback? onHoverEnd;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final VoidCallback? onRemove;
-  final VoidCallback? onPreview;
-
-  const PDFImageItem({
-    Key? key,
-    required this.pdfFile,
-    this.onHoverStart,
-    this.onHoverEnd,
-    this.onTap,
-    this.onLongPress,
-    this.onRemove,
-    this.onPreview,
-  }) : super(key: key);
-
-  @override
-  _PDFImageItemState createState() => _PDFImageItemState();
-}
-
-class _PDFImageItemState extends State<PDFImageItem> {
-  bool _isHoverActive = false;
-
-  void _onHoverStart() {
-    widget.onHoverStart?.call();
-  }
-
-  void _onHoverEnd() {
-    widget.onHoverEnd?.call();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      child: InkWell(
-        hoverColor: Colors.transparent,
-        onTap: widget.onTap ?? () => null,
-        onLongPress: widget.onLongPress,
-        onHover: (value) {
-          value ? _onHoverStart() : _onHoverEnd();
-          setState(() => _isHoverActive = value);
-        },
-        child: Container(
-          height: 210,
-          width: 140,
-          decoration: BoxDecoration(
-            // color: _isHoverActive ? Colors.black : Colors.white,
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8.0),
-            boxShadow: [
-              BoxShadow(
-                color: _isHoverActive ? Colors.black : Colors.transparent,
-                spreadRadius: 1,
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Image.file(widget.pdfFile.file.toFile()),
-              ),
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  duration: kDuration,
-                  opacity: _isHoverActive ? 1.0 : 0.0,
-                  // opacity: 1.0,
-                  child: Visibility(
-                    visible: _isHoverActive,
-                    // visible: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: AnimatedContainer(
-                      duration: kDuration,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Colors.black45,
-                      ),
-                      child: _renderHoverContents(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _renderHoverContents() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(5.0, 12.0, 5.0, 20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            widget.pdfFile.name ?? "-",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: widget.onPreview,
-                    child: const Text(
-                      "Preview",
-                      style: TextStyle(color: Colors.blue, fontSize: 11),
-                    ),
-                  ),
-                  Divider(),
-                  TextButton(
-                    onPressed: widget.onRemove,
-                    child: const Text(
-                      "Remove",
-                      style: TextStyle(color: Colors.red, fontSize: 11),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -426,7 +340,7 @@ class _PDFExportDialog extends StatelessWidget {
         children: [
           DropDownListTile<PdfPageFormatEnum>(
             title: "Paper Size",
-            initialValue: _options.pageFormat!,
+            initialValue: _options.pageFormat ?? PdfPageFormatEnum.A4,
             options: const [
               DropdownMenuItem(
                 child: Text("A3"),
@@ -455,7 +369,7 @@ class _PDFExportDialog extends StatelessWidget {
           ),
           DropDownListTile<PageOrientationEnum>(
             title: "Layout",
-            initialValue: _options.pageOrientation!,
+            initialValue: _options.pageOrientation ?? PageOrientationEnum.Portrait,
             options: const [
               DropdownMenuItem(
                 child: Text("Portrait"),
@@ -503,161 +417,5 @@ class _PDFExportDialog extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-//
-// responsive grid list
-//
-
-class ResponsiveGridList extends StatelessWidget {
-  final double desiredItemWidth, minSpacing;
-  final List<Widget> children;
-  final bool squareCells, scroll;
-  final MainAxisAlignment rowMainAxisAlignment;
-  final EdgeInsetsGeometry? padding;
-
-  ResponsiveGridList({
-    required this.desiredItemWidth,
-    this.padding,
-    this.minSpacing = 1,
-    this.squareCells = false,
-    this.scroll = true,
-    required this.children,
-    this.rowMainAxisAlignment = MainAxisAlignment.start,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (children.length == 0) return Container();
-
-        double width = constraints.maxWidth;
-
-        double N = (width - minSpacing) / (desiredItemWidth + minSpacing);
-
-        int n;
-        double spacing, itemWidth;
-
-        if (N % 1 == 0) {
-          n = N.floor();
-          spacing = minSpacing;
-          itemWidth = desiredItemWidth;
-        } else {
-          n = N.floor();
-
-          double dw = width - (n * (desiredItemWidth + minSpacing) + minSpacing);
-
-          itemWidth = desiredItemWidth + (dw / n) * (desiredItemWidth / (desiredItemWidth + minSpacing));
-
-          spacing = (width - itemWidth * n) / (n + 1);
-        }
-
-        if (scroll) {
-          return ListView.builder(
-              padding: padding ?? const EdgeInsets.symmetric(vertical: 20),
-              itemCount: (children.length / n).ceil() * 2 - 1,
-              itemBuilder: (context, index) {
-                //if (index * n >= children.length) return null;
-                //separator
-                if (index % 2 == 1) {
-                  return SizedBox(
-                    height: minSpacing,
-                  );
-                }
-                //item
-                final rowChildren = <Widget>[];
-                index = index ~/ 2;
-                for (int i = index * n; i < (index + 1) * n; i++) {
-                  if (i >= children.length) break;
-                  rowChildren.add(children[i]);
-                }
-                return _ResponsiveGridListItem(
-                  mainAxisAlignment: this.rowMainAxisAlignment,
-                  itemWidth: itemWidth,
-                  spacing: spacing,
-                  squareCells: squareCells,
-                  children: rowChildren,
-                );
-              });
-        } else {
-          final rows = <Widget>[];
-          rows.add(SizedBox(
-            height: minSpacing,
-          ));
-          //
-          for (int j = 0; j < (children.length / n).ceil(); j++) {
-            final rowChildren = <Widget>[];
-            //
-            for (int i = j * n; i < (j + 1) * n; i++) {
-              if (i >= children.length) break;
-              rowChildren.add(children[i]);
-            }
-            //
-            rows.add(_ResponsiveGridListItem(
-              mainAxisAlignment: this.rowMainAxisAlignment,
-              itemWidth: itemWidth,
-              spacing: spacing,
-              squareCells: squareCells,
-              children: rowChildren,
-            ));
-
-            rows.add(SizedBox(
-              height: minSpacing,
-            ));
-          }
-
-          return Column(
-            children: rows,
-          );
-        }
-      },
-    );
-  }
-}
-
-class _ResponsiveGridListItem extends StatelessWidget {
-  final double spacing, itemWidth;
-  final List<Widget> children;
-  final bool squareCells;
-  final MainAxisAlignment mainAxisAlignment;
-
-  _ResponsiveGridListItem({
-    required this.itemWidth,
-    required this.spacing,
-    required this.squareCells,
-    required this.children,
-    this.mainAxisAlignment = MainAxisAlignment.start,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: this.mainAxisAlignment,
-      children: _buildChildren(),
-    );
-  }
-
-  List<Widget> _buildChildren() {
-    final list = <Widget>[];
-
-    list.add(SizedBox(
-      width: spacing,
-    ));
-
-    children.forEach((child) {
-      list.add(SizedBox(
-        width: itemWidth,
-        height: squareCells ? itemWidth : null,
-        child: child,
-      ));
-      list.add(SizedBox(
-        width: spacing,
-      ));
-    });
-
-    return list;
   }
 }

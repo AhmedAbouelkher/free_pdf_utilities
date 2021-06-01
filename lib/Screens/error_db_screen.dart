@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 
 class ErrorDBScreen extends StatelessWidget {
   const ErrorDBScreen({Key? key}) : super(key: key);
@@ -27,7 +28,7 @@ class ErrorDBScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   Text(
-                    "There was an isssue opening Sidekick",
+                    "There was an isssue opening $kAppName",
                     style: Theme.of(context).textTheme.headline4,
                     textAlign: TextAlign.center,
                   ),
@@ -58,6 +59,6 @@ class ErrorDBScreen extends StatelessWidget {
   }
 }
 
-const text = "Sidekick is having trouble reading its settings."
-    " Please make sure that there are no other instances of Sidekick running"
+const text = "$kAppName is having trouble reading its settings."
+    " Please make sure that there are no other instances of $kAppName running"
     " and try again. If the problem persists, please open a Github Issue.";

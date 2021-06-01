@@ -52,6 +52,8 @@ dependencies:
   hive_flutter: ^1.0.0
   provider:
 
+  process_run: ^0.12.1
+
 
 dev_dependencies:
   flutter_test:

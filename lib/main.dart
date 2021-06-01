@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -16,6 +17,10 @@ import 'package:free_pdf_utilities/Screens/root_screen.dart';
 import 'Modules/Settings/settings_provider.dart';
 
 void main() async {
+  if (Platform.isIOS || Platform.isAndroid) {
+    log("Sorry, $kAppName isn't designed to run on Mobile Devices...");
+    exit(0);
+  }
   WidgetsFlutterBinding.ensureInitialized();
   await PreferenceUtils.init();
   Hive.registerAdapter(PdfPageFormatEnumAdapter());
@@ -60,9 +65,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     var _settingBox = SettingService.box;
-    if (_settingBox == null) {
-      return ErrorDBScreen();
-    }
+    if (_settingBox == null) return ErrorDBScreen();
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
@@ -74,7 +77,7 @@ class _MyAppState extends State<MyApp> {
           return MaterialApp(
             title: kAppName,
             debugShowCheckedModeBanner: false,
-            themeMode: SettingsThemeMode.getThemeMode(_appSettings.themeMode!),
+            themeMode: SettingsThemeMode.getThemeMode(_appSettings.themeMode),
             home: const RootScreen(),
             darkTheme: ThemeData.dark().copyWith(
               scaffoldBackgroundColor: const Color(0xFF1D1E1F),

@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       leading: Icon(_tapsIcons[index], size: 18),
                       title: Text(
                         _tap,
-                        style: Theme.of(context).textTheme.subtitle2,
+                        style: TextStyle(fontSize: 13),
                       ),
                       selectedTileColor: Theme.of(context).hoverColor,
                       selected: _currentTap == index,
@@ -159,7 +159,7 @@ class ExportOptionsSettingsTap extends StatelessWidget {
           ),
           title: DropDownListTile<PdfPageFormatEnum>(
             title: "Paper Size",
-            initialValue: _appSettings.exportOptions!.pageFormat!,
+            initialValue: _appSettings.exportOptions!.pageFormat ?? PdfPageFormatEnum.A4,
             options: const [
               DropdownMenuItem(
                 child: Text("A3"),
@@ -191,7 +191,7 @@ class ExportOptionsSettingsTap extends StatelessWidget {
           ),
           title: DropDownListTile<PageOrientationEnum>(
             title: "Layout",
-            initialValue: _appSettings.exportOptions!.pageOrientation!,
+            initialValue: _appSettings.exportOptions!.pageOrientation ?? PageOrientationEnum.Portrait,
             options: const [
               DropdownMenuItem(
                 child: Text("Portrait"),
@@ -248,7 +248,7 @@ class GeneralSettingsTap extends StatelessWidget {
           title: DropDownListTile<String>(
             // enabled: false,
             title: "App Theme",
-            initialValue: _appSettings.themeMode!,
+            initialValue: _appSettings.themeMode ?? SettingsThemeMode.system,
             options: const [
               DropdownMenuItem(
                 child: Text("Dark"),
@@ -269,7 +269,25 @@ class GeneralSettingsTap extends StatelessWidget {
             },
           ),
         ),
-        // const Divider(),
+        const Divider(),
+        ListTile(
+          title: const Text(
+            'Clear all Settings from DB...',
+            style: TextStyle(fontSize: 12),
+          ),
+          trailing: OutlinedButton(
+            onPressed: () async {
+              // var read = context.read<AppSettingsProvider>();
+              // await read.clearAllSettings();
+              // print(SettingService.read());
+              // print("Cleared");
+            },
+            child: const Text(
+              'Reset',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
       ],
     );
   }

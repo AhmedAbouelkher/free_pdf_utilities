@@ -27,4 +27,10 @@ class AppSettingsProvider extends ChangeNotifier {
   AppSettings appSettings() {
     return _appSettings ?? SettingService.read();
   }
+
+  Future<void> clearAllSettings() async {
+    await SettingService.clearAll();
+    _appSettings = const AppSettings();
+    notifyListeners();
+  }
 }

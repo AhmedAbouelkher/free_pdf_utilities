@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -37,21 +35,16 @@ class PDFDocumentsController {
     return _pages.removeAt(index);
   }
 
-  Future<Uint8List?> generatePDFDocument() async {
-    return await _document.save();
-  }
-
   Future<XFile?> generatePDFFile([String name = ""]) async {
-    final _data = await generatePDFDocument();
-    if (_data == null) return null;
+    final _data = await _document.save();
     final _mimeType = "application/pdf";
     final _pdfDocFile = XFile.fromData(_data, name: name, mimeType: _mimeType);
-    return _pdfDocFile;
+    return Future.value(_pdfDocFile);
   }
 
   Future<pw.MemoryImage> getImageFromFile(XFile file) async {
     final _file = await file.readAsBytes();
     final image = pw.MemoryImage(_file);
-    return image;
+    return Future.value(image);
   }
 }

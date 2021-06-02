@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:window_size/window_size.dart';
 
@@ -23,13 +24,21 @@ void main() async {
   }
   WidgetsFlutterBinding.ensureInitialized();
   await PreferenceUtils.init();
-  Hive.registerAdapter(PdfPageFormatEnumAdapter());
+
+  await Hive.initFlutter(kAppName);
+
+  Hive.registerAdapter(NothingAdapter());
   Hive.registerAdapter(PageOrientationEnumAdapter());
+  Hive.registerAdapter(PdfPageFormatEnumAdapter());
   Hive.registerAdapter(AppSettingsAdapter());
   Hive.registerAdapter(PDFExportOptionsAdapter());
-  await Hive.initFlutter();
+  Hive.registerAdapter(PDFCompressionExportOptionsAdapter());
 
-  await SettingService.init();
+  try {
+    await SettingService.init();
+  } catch (e) {
+    print("There was an issue opening the DB | Details: $e");
+  }
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     setWindowTitle("");
@@ -66,6 +75,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     var _settingBox = SettingService.box;
     if (_settingBox == null) return ErrorDBScreen();
+    // return ErrorDBScreen();
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppSettingsProvider()),

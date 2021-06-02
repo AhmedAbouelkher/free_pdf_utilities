@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
+import 'package:free_pdf_utilities/Modules/Settings/settings_service.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class ErrorDBScreen extends StatelessWidget {
   const ErrorDBScreen({Key? key}) : super(key: key);

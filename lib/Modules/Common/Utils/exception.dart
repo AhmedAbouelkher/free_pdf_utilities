@@ -12,3 +12,7 @@ class NotSupportedPlatform implements Exception {
   @override
   String toString() => 'NotSupportedPlatform(message: $message, suggestion: $suggestion)';
 }
+
+class InvalidFile implements Exception {}
+
+class PDFRasterNotSupport implements Exception {}

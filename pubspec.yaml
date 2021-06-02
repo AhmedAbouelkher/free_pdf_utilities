@@ -51,8 +51,9 @@ dependencies:
   hive: ^2.0.4
   hive_flutter: ^1.0.0
   provider:
-
   process_run: ^0.12.1
+  font_awesome_flutter: ^9.0.0
+  image: ^3.0.2
 
 
 dev_dependencies:

@@ -28,17 +28,23 @@ List<String> _imagesExtensions() {
 class _PDFAssetsControllerThreading {
   final List<CxFile> images;
   final PDFExportOptions pdfExportOptions;
-  const _PDFAssetsControllerThreading({
-    required this.images,
-    required this.pdfExportOptions,
-  });
+  const _PDFAssetsControllerThreading({required this.images, required this.pdfExportOptions});
 }
 
+/// Use to generate new PDF file in another isolate thread.
+///
+///Parameters
+///- `_PDFAssetsControllerThreading({required this.images, required this.pdfExportOptions})`.
+///
 Future<Uint8List> _generatePDFOnAnotherThread(_PDFAssetsControllerThreading dataLoader) async {
+  //*Creating new document
   final _doc = pw.Document();
   for (var image in dataLoader.images) {
+    //Generating memory image
     final _file = await image.file.readAsBytes();
     final _memoryImage = pw.MemoryImage(_file);
+
+    //Generating new page with `orientation`and `pageFormat`, then adding it to the document.
     pw.Page(
       orientation: getPageOrientation(dataLoader.pdfExportOptions.pageOrientation),
       pageFormat: getPdfPageFormat(dataLoader.pdfExportOptions.pageFormat),
@@ -49,23 +55,28 @@ Future<Uint8List> _generatePDFOnAnotherThread(_PDFAssetsControllerThreading data
       ..generate(_doc)
       ..postProcess(_doc);
   }
+  //Generating the acual PDF data as `Uint8List`
   final _data = await _doc.document.save();
   return _data;
 }
 
 class PDFAssetsController extends AssetsController {
-  @protected
-  @override
-  List<CxFile>? get docImages => _docImages;
   late List<CxFile>? _docImages;
   late StreamController<List<CxFile>> _streamController;
   late String _savedDocumentName;
+
+  String get documentName => _savedDocumentName;
   Stream<List<CxFile>> get imageStream => _streamController.stream.asBroadcastStream();
+
+  @protected
+  @override
+  List<CxFile>? get docImages => _docImages;
 
   PDFAssetsController() {
     _streamController = StreamController.broadcast();
     _docImages = [];
     _streamController.sink.add(<CxFile>[]);
+    _generateDocumentExportName();
   }
 
   @override
@@ -82,11 +93,12 @@ class PDFAssetsController extends AssetsController {
   Future<XFile> generateDoument(ExportOptions exportOptions) async {
     final _options = exportOptions as PDFExportOptions;
     final _dataLoader = _PDFAssetsControllerThreading(images: _docImages!, pdfExportOptions: _options);
+    //* Generating PDF file on another isolate thread
     final _generatedData =
         await compute<_PDFAssetsControllerThreading, Uint8List>(_generatePDFOnAnotherThread, _dataLoader);
-    _generateDocumentExportName(exportOptions);
+
     final _mimeType = "application/pdf";
-    final file = XFile.fromData(_generatedData, mimeType: _mimeType);
+    final file = XFile.fromData(_generatedData, name: _savedDocumentName, mimeType: _mimeType);
     return Future.value(file);
   }
 
@@ -115,12 +127,9 @@ class PDFAssetsController extends AssetsController {
     return _files;
   }
 
-  //TODO: Make the export date is at which the initial images was added
-  void _generateDocumentExportName(PDFExportOptions options) {
+  void _generateDocumentExportName() {
     final String _time = DateTime.now().format(DateTimeFormats.europeanAbbr);
-    final String _pageFormat = options.pageFormat!.toString().split(".").last;
-    final String _pageOrientation = options.pageOrientation.toString().split(".").last;
-    _savedDocumentName = 'Free PDF Utilities-$_time-$_pageFormat-$_pageOrientation.pdf';
+    _savedDocumentName = 'Free PDF Utilities-$_time.pdf';
   }
 
   @override

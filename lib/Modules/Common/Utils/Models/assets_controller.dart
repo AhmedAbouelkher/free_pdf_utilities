@@ -3,12 +3,30 @@ import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as path;
 
 abstract class AssetsController {
-  List<CxFile>? get docImages;
-  Future<String> exportDocument(XFile file);
-  Future<XFile> generateDoument(ExportOptions exportOptions);
-  CxFile removeAt(int index);
-  Future<void> pickFiles();
-  Future<void> dispose();
+  List<CxFile>? get docImages {
+    throw UnimplementedError();
+  }
+
+  Future<String> exportDocument(XFile file) {
+    throw UnimplementedError();
+  }
+
+  Future<XFile> generateDoument(ExportOptions exportOptions) {
+    throw UnimplementedError();
+  }
+
+  CxFile removeAt(int index) {
+    throw UnimplementedError();
+  }
+
+  Future<void> pickFiles() {
+    throw UnimplementedError();
+  }
+
+  Future<void> dispose() {
+    throw UnimplementedError();
+  }
+
   bool get isEmptyDocument => docImages!.isEmpty;
   bool get isNotEmptyDocument => !isEmptyDocument;
 }

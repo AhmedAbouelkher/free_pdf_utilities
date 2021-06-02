@@ -1,9 +1,11 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
-import 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:free_pdf_utilities/Modules/PDFServices/Providers/pdf_assets_controller.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 
 part 'app_settings.g.dart';
 
@@ -15,18 +17,24 @@ class AppSettings {
   @HiveField(1)
   final PDFExportOptions? exportOptions;
 
+  @HiveField(2)
+  final PDFCompressionExportOptions? pdfCompressionExportOptions;
+
   const AppSettings({
     this.themeMode,
     this.exportOptions,
+    this.pdfCompressionExportOptions,
   });
 
   AppSettings copyWith({
     String? themeMode,
     PDFExportOptions? exportOptions,
+    PDFCompressionExportOptions? pdfCompressionExportOptions,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       exportOptions: exportOptions ?? this.exportOptions,
+      pdfCompressionExportOptions: pdfCompressionExportOptions ?? this.pdfCompressionExportOptions,
     );
   }
 
@@ -35,6 +43,8 @@ class AppSettings {
     return copyWith(
       themeMode: other.themeMode,
       exportOptions: (this.exportOptions ?? const PDFExportOptions()).merge(other.exportOptions),
+      pdfCompressionExportOptions: (this.pdfCompressionExportOptions ?? const PDFCompressionExportOptions())
+          .merge(other.pdfCompressionExportOptions),
     );
   }
 
@@ -42,7 +52,10 @@ class AppSettings {
   String toString() => 'AppSettings(themeMode: $themeMode, exportOptions: $exportOptions)';
 }
 
-@HiveType(typeId: 22)
+@HiveType(typeId: 33)
+class Nothing {}
+
+@HiveType(typeId: 11)
 enum PdfPageFormatEnum {
   @HiveField(0)
   A3,
@@ -54,7 +67,7 @@ enum PdfPageFormatEnum {
   Letter
 }
 
-@HiveType(typeId: 33)
+@HiveType(typeId: 22)
 enum PageOrientationEnum {
   @HiveField(0)
   Landscape,
@@ -62,7 +75,7 @@ enum PageOrientationEnum {
   Portrait
 }
 
-@HiveType(typeId: 1)
+@HiveType(typeId: 2)
 class PDFExportOptions extends ExportOptions {
   @HiveField(0)
   final PdfPageFormatEnum? pageFormat;
@@ -94,6 +107,63 @@ class PDFExportOptions extends ExportOptions {
 
   @override
   String toString() => 'PDFExportOptions(pageFormat: $pageFormat, pageOrientation: $pageOrientation)';
+}
+
+@HiveType(typeId: 3)
+class PDFCompressionExportOptions extends ExportOptions {
+  ///Compression value between `50%` to `100%`.
+  @HiveField(0)
+  final int? compression;
+
+  const PDFCompressionExportOptions({
+    this.compression,
+  });
+
+  PDFCompressionExportOptions copyWith({
+    int? compression,
+  }) {
+    return PDFCompressionExportOptions(
+      compression: compression ?? this.compression,
+    );
+  }
+
+  PDFCompressionExportOptions merge(PDFCompressionExportOptions? other) {
+    if (other == null) return this;
+    return copyWith(
+      compression: other.compression,
+    );
+  }
+
+  @override
+  String toString() => 'PDFCompressionExportOptions(compression: $compression)';
+}
+
+class SettingsThemeMode {
+  static const light = 'light';
+  static const dark = 'dark';
+  static const system = 'system';
+
+  const SettingsThemeMode();
+
+  static ThemeMode getThemeMode(String? themeMode) {
+    if (themeMode == SettingsThemeMode.light) {
+      return ThemeMode.light;
+    } else if (themeMode == SettingsThemeMode.dark) {
+      return ThemeMode.dark;
+    } else {
+      return ThemeMode.system;
+    }
+  }
+
+  static String fromThemeMode(ThemeMode themeMode) {
+    if (themeMode == ThemeMode.light) {
+      return SettingsThemeMode.light;
+    } else if (themeMode == ThemeMode.light) {
+      return SettingsThemeMode.dark;
+    } else {
+      return SettingsThemeMode.system;
+    }
+  }
 }
 
 PdfPageFormat? getPdfPageFormat(PdfPageFormatEnum? pageFormatEnum) {
@@ -131,34 +201,6 @@ extension PageFormat on PdfPageFormat {
       return PdfPageFormatEnum.A5;
     } else {
       return PdfPageFormatEnum.Letter;
-    }
-  }
-}
-
-class SettingsThemeMode {
-  static const light = 'light';
-  static const dark = 'dark';
-  static const system = 'system';
-
-  const SettingsThemeMode();
-
-  static ThemeMode getThemeMode(String? themeMode) {
-    if (themeMode == SettingsThemeMode.light) {
-      return ThemeMode.light;
-    } else if (themeMode == SettingsThemeMode.dark) {
-      return ThemeMode.dark;
-    } else {
-      return ThemeMode.system;
-    }
-  }
-
-  static String fromThemeMode(ThemeMode themeMode) {
-    if (themeMode == ThemeMode.light) {
-      return SettingsThemeMode.light;
-    } else if (themeMode == ThemeMode.light) {
-      return SettingsThemeMode.dark;
-    } else {
-      return SettingsThemeMode.system;
     }
   }
 }

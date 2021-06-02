@@ -1,5 +1,5 @@
 import 'package:free_pdf_utilities/Modules/Common/Utils/shared_prefs_utils.dart';
-import 'package:free_pdf_utilities/Modules/PDFServices/Providers/pdf_assets_controller.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 
 @deprecated
 class CachController {

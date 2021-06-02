@@ -6,11 +6,12 @@ import 'package:provider/provider.dart';
 import 'package:responsive_grid/responsive_grid.dart';
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_controller.dart';
-import 'package:free_pdf_utilities/Modules/PDFServices/Providers/pdf_assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
 import 'package:free_pdf_utilities/Screens/root_screen.dart';
+
+import '../pdf_assets_controller.dart';
 
 //TODO: Impelement images multiselect
 class PNGtoPDFScreen extends StatefulWidget {
@@ -20,21 +21,31 @@ class PNGtoPDFScreen extends StatefulWidget {
 
 class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   late final PDFAssetsController _assetsController;
-  late final GlobalKey<DraggableContainerState<MyItem>> key;
+  AppSettingsProvider? _appSettingsProvider;
   bool _isLoading = false;
 
   @override
   void initState() {
     _assetsController = PDFAssetsController();
-    key = GlobalKey<DraggableContainerState<MyItem>>();
-
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      _appSettingsProvider!.createTempExportOptions(_assetsController.documentName);
+    });
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _appSettingsProvider ??= context.read<AppSettingsProvider>();
   }
 
   // final key = GlobalKey<DraggableContainerState<MyItem>>();
 
   @override
   void dispose() {
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      _appSettingsProvider!.desposeTempExportOptions();
+    });
     _assetsController.dispose();
     super.dispose();
   }
@@ -154,8 +165,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             if (_isLoading) ...[
               Positioned.fill(child: Container(color: Colors.black54)),
               Center(child: CircularProgressIndicator.adaptive()),
-              for (var i = 1; i <= 25; i++)
-                Center(child: SizedBox(height: 20.0 * i, width: 20.0 * i, child: CircularProgressIndicator())),
             ]
           ],
         ),
@@ -252,7 +261,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             context: context,
             builder: (_) => _PDFExportDialog(
               onSave: (exportOptions) {
-                context.read<AppSettingsProvider>().saveSettings(AppSettings(exportOptions: exportOptions));
+                _appSettingsProvider!.updateTempExportOptions(exportOptions);
               },
               onOpenSettings: () {
                 Navigator.push(
@@ -313,7 +322,6 @@ class MyItem extends DraggableItem {
   }
 }
 
-//TODO: Make the export options persisite relative to ONLY the current process
 class _PDFExportDialog extends StatelessWidget {
   final ValueChanged<PDFExportOptions> onSave;
   final VoidCallback? onOpenSettings;
@@ -325,8 +333,12 @@ class _PDFExportDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _appSettings = context.read<AppSettingsProvider>().appSettings();
-    final _options = _appSettings.exportOptions!;
+    final _settingsProvider = context.read<AppSettingsProvider>();
+    final _appSettings = _settingsProvider.appSettings();
+    final _tempExportOptions = _settingsProvider.readTempExportOptions<PDFExportOptions>();
+
+    final _options = (_tempExportOptions ?? _appSettings.exportOptions) ?? const PDFExportOptions();
+
     void _changeOptions(PDFExportOptions newOptions) {
       final _newOptions = _options.merge(newOptions);
       onSave(_newOptions);

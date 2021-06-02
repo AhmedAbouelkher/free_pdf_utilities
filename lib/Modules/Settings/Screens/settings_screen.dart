@@ -51,7 +51,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _handleSave(AppSettings newSettings) {
-    context.read<AppSettingsProvider>().saveSettings(newSettings);
+    var _appSettingsProvider = context.read<AppSettingsProvider>();
+    _appSettingsProvider.saveSettings(newSettings);
+    _appSettingsProvider.desposeTempExportOptions();
   }
 
   void _handleExportOptionsReset() {
@@ -143,8 +145,6 @@ class ExportOptionsSettingsTap extends StatelessWidget {
     final _appSettings = context.watch<AppSettingsProvider>().appSettings();
 
     void _callOnSave(PDFExportOptions exportOptions) {
-      // final _appSettingsUpdated = context.read<AppSettingsProvider>().appSettings();
-      // final _options = _appSettingsUpdated.exportOptions!.merge(exportOptions);
       onSave(AppSettings(exportOptions: exportOptions));
     }
 
@@ -272,7 +272,7 @@ class GeneralSettingsTap extends StatelessWidget {
         const Divider(),
         ListTile(
           title: const Text(
-            'Clear all Settings from DB...',
+            'Clear all Settings from local DB...',
             style: TextStyle(fontSize: 12),
           ),
           trailing: OutlinedButton(
@@ -283,7 +283,7 @@ class GeneralSettingsTap extends StatelessWidget {
               // print("Cleared");
             },
             child: const Text(
-              'Reset',
+              'Clear',
               style: TextStyle(fontSize: 12),
             ),
           ),

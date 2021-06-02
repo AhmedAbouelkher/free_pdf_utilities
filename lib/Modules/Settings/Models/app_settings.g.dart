@@ -8,7 +8,7 @@ part of 'app_settings.dart';
 
 class PdfPageFormatEnumAdapter extends TypeAdapter<PdfPageFormatEnum> {
   @override
-  final int typeId = 22;
+  final int typeId = 11;
 
   @override
   PdfPageFormatEnum read(BinaryReader reader) {
@@ -50,14 +50,12 @@ class PdfPageFormatEnumAdapter extends TypeAdapter<PdfPageFormatEnum> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PdfPageFormatEnumAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+      other is PdfPageFormatEnumAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
 }
 
 class PageOrientationEnumAdapter extends TypeAdapter<PageOrientationEnum> {
   @override
-  final int typeId = 33;
+  final int typeId = 22;
 
   @override
   PageOrientationEnum read(BinaryReader reader) {
@@ -89,9 +87,7 @@ class PageOrientationEnumAdapter extends TypeAdapter<PageOrientationEnum> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PageOrientationEnumAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+      other is PageOrientationEnumAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
 }
 
 class AppSettingsAdapter extends TypeAdapter<AppSettings> {
@@ -101,25 +97,27 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
   @override
   AppSettings read(BinaryReader reader) {
     final numOfFields = reader.readByte();
+    log(numOfFields.toString());
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return AppSettings(
-      themeMode: fields[0] == null ? 'system' : fields[0] as String?,
-      exportOptions: fields[1] == null
-          ? const PDFExportOptions()
-          : fields[1] as PDFExportOptions?,
+      themeMode: fields[0] as String?,
+      exportOptions: fields[1] as PDFExportOptions?,
+      pdfCompressionExportOptions: fields[2] as PDFCompressionExportOptions?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.themeMode)
       ..writeByte(1)
-      ..write(obj.exportOptions);
+      ..write(obj.exportOptions)
+      ..writeByte(2)
+      ..write(obj.pdfCompressionExportOptions);
   }
 
   @override
@@ -128,14 +126,34 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppSettingsAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+      other is AppSettingsAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+}
+
+class NothingAdapter extends TypeAdapter<Nothing> {
+  @override
+  final int typeId = 33;
+
+  @override
+  Nothing read(BinaryReader reader) {
+    return Nothing();
+  }
+
+  @override
+  void write(BinaryWriter writer, Nothing obj) {
+    writer..writeByte(0);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is NothingAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
 }
 
 class PDFExportOptionsAdapter extends TypeAdapter<PDFExportOptions> {
   @override
-  final int typeId = 1;
+  final int typeId = 2;
 
   @override
   PDFExportOptions read(BinaryReader reader) {
@@ -144,12 +162,8 @@ class PDFExportOptionsAdapter extends TypeAdapter<PDFExportOptions> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return PDFExportOptions(
-      pageFormat: fields[0] == null
-          ? PdfPageFormatEnum.A4
-          : fields[0] as PdfPageFormatEnum?,
-      pageOrientation: fields[1] == null
-          ? PageOrientationEnum.Portrait
-          : fields[1] as PageOrientationEnum?,
+      pageFormat: fields[0] as PdfPageFormatEnum?,
+      pageOrientation: fields[1] as PageOrientationEnum?,
     );
   }
 
@@ -169,7 +183,37 @@ class PDFExportOptionsAdapter extends TypeAdapter<PDFExportOptions> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PDFExportOptionsAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+      other is PDFExportOptionsAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+}
+
+class PDFCompressionExportOptionsAdapter extends TypeAdapter<PDFCompressionExportOptions> {
+  @override
+  final int typeId = 3;
+
+  @override
+  PDFCompressionExportOptions read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return PDFCompressionExportOptions(
+      compression: fields[0] as int?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, PDFCompressionExportOptions obj) {
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.compression);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PDFCompressionExportOptionsAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
 }

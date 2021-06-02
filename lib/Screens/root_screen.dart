@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
-import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/Screens/PNG_to_PDF_screen.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/CompressPDF/Screens/compress_pdf_screen.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/Screens/Images_to_PDF_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
+import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:responsive_grid/responsive_grid.dart';
 
 class RootScreen extends StatefulWidget {
@@ -14,6 +16,12 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen> {
   void _navigateToSettings() {
     Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen()));
+  }
+
+  @override
+  void initState() {
+    context.read<AppSettingsProvider>().desposeTempExportOptions();
+    super.initState();
   }
 
   @override
@@ -36,7 +44,17 @@ class _RootScreenState extends State<RootScreen> {
                 decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(8.0)),
                 child: Center(child: Text("IMAGES TO PDF")),
               ),
-            )
+            ),
+            InkWell(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CompressPDFScreen()));
+              },
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(8.0)),
+                child: Center(child: Text("Compress PDF")),
+              ),
+            ),
           ],
         ),
       ),
@@ -127,5 +145,5 @@ class CAppBar extends StatelessWidget with PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 15);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 15.0);
 }

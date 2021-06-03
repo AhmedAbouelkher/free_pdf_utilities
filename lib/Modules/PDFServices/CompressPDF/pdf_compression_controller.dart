@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data' show Uint8List;
-import 'dart:ui' as ui;
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -18,25 +17,30 @@ List<String> _pdfExtensions() {
 }
 
 class _PDFCompressionControllerThreading {
-  final List<Uint8List> compressedImages;
+  final List<Uint8List> images;
   final PDFCompressionExportOptions exportOptions;
-  _PDFCompressionControllerThreading({required this.compressedImages, required this.exportOptions});
+  final CxFile? file;
+  final Map<String, dynamic?>? metaData;
+  const _PDFCompressionControllerThreading({
+    required this.images,
+    required this.exportOptions,
+    this.file,
+    this.metaData,
+  });
 }
 
-//************************************************ */
 Future<List<Uint8List>> _convertPDFToImages(CxFile file) async {
-  final _fileUnit8ListData = await file.file.readAsBytes();
+  final _fileUnit8ListData = await file.internal.readAsBytes();
 
   List<Uint8List> _unCompressedImages = [];
 
-  await for (var page in Printing.raster(_fileUnit8ListData, dpi: 150)) {
+  await for (var page in Printing.raster(_fileUnit8ListData)) {
     final _image = await page.toPng();
     _unCompressedImages.add(_image);
   }
   return Future.value(_unCompressedImages);
 }
 
-//************************************************ */
 Future<List<Uint8List>> _compressImages(List<Uint8List> images, {int? quality}) async {
   List<Uint8List> _compressedImages = [];
   for (var _image in images) {
@@ -45,21 +49,26 @@ Future<List<Uint8List>> _compressImages(List<Uint8List> images, {int? quality}) 
     // var encodeJpg = img.encodeJpg(image, quality: quality ?? 100);
     var encodeJpg = img.encodeJpg(image, quality: 100);
     // var encodeJpg = img.encodePng(image, level: 1);
+
     _compressedImages.add(Uint8List.fromList(encodeJpg));
   }
   return Future.value(_compressedImages);
 }
 
-//************************************************ */
 /// Use to generate new PDF file in another isolate thread.
 ///
 ///Parameters
 ///- `_PDFCompressionControllerThreading({required this.compressedImages, required this.exportOptions})`.
 ///
 Future<Uint8List> _generatePDFDocument(_PDFCompressionControllerThreading dataLoader) async {
+  //? Compress every image
+  final _compressedImages = await _compressImages(dataLoader.images, quality: dataLoader.exportOptions.compression);
+
+  //? Regenerate the new PDF document
+
   //*Creating new document
   final _doc = pw.Document();
-  for (Uint8List imageAsBytes in dataLoader.compressedImages) {
+  for (Uint8List imageAsBytes in _compressedImages) {
     //Generating memory image
     final _memoryImage = pw.MemoryImage(imageAsBytes);
 
@@ -74,15 +83,15 @@ Future<Uint8List> _generatePDFDocument(_PDFCompressionControllerThreading dataLo
   }
   //Generating the acual PDF data as `Uint8List`
   final _data = await _doc.document.save();
+
   return _data;
 }
 
-//************************************************ */
 class PDFCompressionController extends AssetsController {
   CxFile? _pdfFile;
   late StreamController<CxFile> _streamController;
 
-  Stream<CxFile> get pdfFile => _streamController.stream.asBroadcastStream();
+  Stream<CxFile> get pdfFileStream => _streamController.stream.asBroadcastStream();
 
   late String _savedDocumentName;
 
@@ -100,34 +109,32 @@ class PDFCompressionController extends AssetsController {
       confirmButtonText: "Choose PDF",
     );
     if (_file == null) return null;
-    _pdfFile = _file.toCxFile();
+    _pdfFile = await _file.toCxFile();
+
     _savedDocumentName = _pdfFile!.name!;
     _streamController.sink.add(_pdfFile!);
   }
 
   @override
-  Future<XFile> generateDoument(ExportOptions exportOptions) async {
+  Future<XFile> generateDoument(ExportOptions exportOptions, [CxFile? origin]) async {
     final _options = exportOptions as PDFCompressionExportOptions;
 
-    if (_pdfFile == null) throw InvalidFile();
+    if (_pdfFile == null && origin == null) throw InvalidFile();
 
     if (!(await isFeatureAvailable())) throw PDFRasterNotSupport();
 
+    final _tempPDFFile = _pdfFile ?? origin;
+
     //? Convert PDF to images
-    final _images = await _convertPDFToImages(_pdfFile!);
+    final _images = await _convertPDFToImages(_tempPDFFile!);
 
-    //? Compress every image
-    final _compressedImages = await _compressImages(_images, quality: _options.compression);
+    final _dataLoader = _PDFCompressionControllerThreading(exportOptions: _options, images: _images);
+    final _generatedData =
+        await compute<_PDFCompressionControllerThreading, Uint8List>(_generatePDFDocument, _dataLoader);
 
-    //? Regenerate the new PDF document
-    final _generatedData = await _generatePDFDocument(
-      _PDFCompressionControllerThreading(
-        compressedImages: _compressedImages,
-        exportOptions: _options,
-      ),
-    );
     final _mimeType = "application/pdf";
-    final file = XFile.fromData(_generatedData, name: _savedDocumentName, mimeType: _mimeType);
+    final file = XFile.fromData(_generatedData, name: "_savedDocumentName", mimeType: _mimeType);
+
     return Future.value(file);
   }
 

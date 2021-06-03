@@ -66,7 +66,7 @@ class _PDFImageItemState extends State<PDFImageItem> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: Image.file(widget.pdfFile.file.toFile()),
+                child: Image.file(widget.pdfFile.internal.toFile()),
               ),
               Positioned.fill(
                 child: AnimatedOpacity(

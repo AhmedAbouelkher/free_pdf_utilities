@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:window_size/window_size.dart';
 
@@ -90,6 +89,7 @@ class _MyAppState extends State<MyApp> {
             themeMode: SettingsThemeMode.getThemeMode(_appSettings.themeMode),
             home: const RootScreen(),
             darkTheme: ThemeData.dark().copyWith(
+              toggleableActiveColor: Colors.blue,
               scaffoldBackgroundColor: const Color(0xFF1D1E1F),
               outlinedButtonTheme: OutlinedButtonThemeData(
                 style: OutlinedButton.styleFrom(

@@ -50,7 +50,11 @@ class _DropDownListTileState<T> extends State<DropDownListTile<T>> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(widget.title, style: TextStyle(fontSize: 13).merge(widget.titleStyle)),
+        Text(widget.title,
+            style: TextStyle(
+              fontSize: 13,
+              color: widget.enabled ? null : Colors.white60,
+            ).merge(widget.titleStyle)),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
           decoration: BoxDecoration(

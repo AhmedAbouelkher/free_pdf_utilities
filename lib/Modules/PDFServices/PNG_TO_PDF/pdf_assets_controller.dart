@@ -41,7 +41,7 @@ Future<Uint8List> _generatePDFOnAnotherThread(_PDFAssetsControllerThreading data
   final _doc = pw.Document();
   for (var image in dataLoader.images) {
     //Generating memory image
-    final _file = await image.file.readAsBytes();
+    final _file = await image.internal.readAsBytes();
     final _memoryImage = pw.MemoryImage(_file);
 
     //Generating new page with `orientation`and `pageFormat`, then adding it to the document.
@@ -67,6 +67,9 @@ class PDFAssetsController extends AssetsController {
 
   String get documentName => _savedDocumentName;
   Stream<List<CxFile>> get imageStream => _streamController.stream.asBroadcastStream();
+
+  bool get isEmptyDocument => docImages!.isEmpty;
+  bool get isNotEmptyDocument => !isEmptyDocument;
 
   @protected
   @override
@@ -107,7 +110,7 @@ class PDFAssetsController extends AssetsController {
     final List<XFile> _images = await _pickImagesFromSystem();
     if (_images.isEmpty) return;
 
-    _docImages!.addAll(_images.map((e) => e.toCxFile()));
+    _docImages!.addAll(_images.map((e) => e.toCxFileSync()));
     _streamController.sink.add(_docImages!);
   }
 

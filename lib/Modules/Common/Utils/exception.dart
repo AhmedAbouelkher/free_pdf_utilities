@@ -16,3 +16,5 @@ class NotSupportedPlatform implements Exception {
 class InvalidFile implements Exception {}
 
 class PDFRasterNotSupport implements Exception {}
+
+class PythonNotInstalled implements Exception {}

@@ -5,7 +5,6 @@ import 'package:free_pdf_utilities/Modules/PDFServices/Widgets/pdf_image_item.da
 import 'package:provider/provider.dart';
 import 'package:responsive_grid/responsive_grid.dart';
 
-import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_controllers.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
@@ -28,7 +27,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   void initState() {
     _assetsController = PDFAssetsController();
     WidgetsBinding.instance?.addPostFrameCallback((_) {
-      _appSettingsProvider!.createTempExportOptions(_assetsController.documentName);
+      _appSettingsProvider!.generateTempExportOptions();
     });
     super.initState();
   }
@@ -43,9 +42,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
 
   @override
   void dispose() {
-    WidgetsBinding.instance?.addPostFrameCallback((_) {
-      _appSettingsProvider!.desposeTempExportOptions();
-    });
     _assetsController.dispose();
     super.dispose();
   }
@@ -71,7 +67,12 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _assetsController.pickFiles(),
+        onPressed: () async {
+          await _assetsController.pickFiles();
+
+          ///Called when picking new file to generate new temp export options.
+          _appSettingsProvider?.generateTempExportOptions();
+        },
         child: Icon(Icons.add),
       ),
       body: SafeArea(
@@ -86,54 +87,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                   }
                   final _images = snapshot.data!;
 
-                  // WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
-                  //   if (_images.isNotEmpty && !key.currentState!.editMode && mounted) {
-                  //     key.currentState?.editMode = true;
-                  //   }
-                  // });
-                  // return DraggableContainer<MyItem>(
-                  //   key: key,
-                  //   tapOutSideExitEditMode: false,
-                  //   deleteButtonBuilder: (_, __) => const SizedBox(),
-                  //   items: List.generate(_images.length, (index) {
-                  //     return MyItem(index: index, deletable: true, fixed: false, pdfFile: _images[index]);
-                  //   }),
-                  //   itemBuilder: (context, rawItem) {
-                  //     return PDFImageItem(
-                  //       pdfFile: rawItem!.pdfFile,
-                  //       onRemove: () {
-                  //         key.currentState!.removeSlot(rawItem.index);
-                  //       },
-                  //     );
-                  //   },
-                  //   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  //     maxCrossAxisExtent: 130,
-                  //     childAspectRatio: 842 / 595,
-                  //     crossAxisSpacing: 10,
-                  //     mainAxisSpacing: 10,
-                  //   ),
-                  //   padding: const EdgeInsets.all(14.0),
-                  //   beforeRemove: (item, slotIndex) async {
-                  //     item = item as MyItem;
-                  //     final res = await showDialog<bool>(
-                  //       context: context,
-                  //       builder: (_) => AlertDialog(
-                  //         title: Text('Remove item ${item!.index}?'),
-                  //         actions: [
-                  //           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No')),
-                  //           ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text('Yes')),
-                  //         ],
-                  //       ),
-                  //     );
-                  //     if (res == true) {
-                  //       // key.currentState!.removeSlot(slotIndex);
-                  //     }
-                  //     return false;
-                  //   },
-                  //   onChanged: (items) {
-                  //     print(items);
-                  //   },
-                  // );
                   return Scrollbar(
                     // thickness: 50,
                     // radius: Radius.circular(50),
@@ -166,33 +119,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
               Positioned.fill(child: Container(color: Colors.black54)),
               Center(child: CircularProgressIndicator.adaptive()),
             ]
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showOnFinder(String filePath) {
-    print(filePath);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        content: Row(
-          children: [
-            Text("PDF Saved", style: TextStyle(fontSize: 12, color: Colors.white)),
-            SizedBox(width: 5),
-            TextButton(
-              onPressed: () {
-                CommandLineController.openDocument(filePath);
-              },
-              child: Text(
-                "Open File",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.cyan,
-                ),
-              ),
-            )
           ],
         ),
       ),
@@ -257,7 +183,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
         void _exportPDF() async {
           if (_assetsController.isEmptyDocument) return;
 
-          final _exportOptions = await showDialog<ExportOptions>(
+          final _exportOptions = await showDialog<PDFExportOptions>(
             context: context,
             builder: (_) => _PDFExportDialog(
               onSave: (exportOptions) {
@@ -282,7 +208,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             final _file = await _assetsController.generateDoument(_exportOptions);
             setState(() => _isLoading = false);
             final _filePath = await _assetsController.exportDocument(_file);
-            _showOnFinder(_filePath);
+            _assetsController.showInFinder(_filePath, context);
           } catch (e) {
             print(e);
           } finally {
@@ -431,3 +357,52 @@ class _PDFExportDialog extends StatelessWidget {
     );
   }
 }
+
+                  // WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+                  //   if (_images.isNotEmpty && !key.currentState!.editMode && mounted) {
+                  //     key.currentState?.editMode = true;
+                  //   }
+                  // });
+                  // return DraggableContainer<MyItem>(
+                  //   key: key,
+                  //   tapOutSideExitEditMode: false,
+                  //   deleteButtonBuilder: (_, __) => const SizedBox(),
+                  //   items: List.generate(_images.length, (index) {
+                  //     return MyItem(index: index, deletable: true, fixed: false, pdfFile: _images[index]);
+                  //   }),
+                  //   itemBuilder: (context, rawItem) {
+                  //     return PDFImageItem(
+                  //       pdfFile: rawItem!.pdfFile,
+                  //       onRemove: () {
+                  //         key.currentState!.removeSlot(rawItem.index);
+                  //       },
+                  //     );
+                  //   },
+                  //   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  //     maxCrossAxisExtent: 130,
+                  //     childAspectRatio: 842 / 595,
+                  //     crossAxisSpacing: 10,
+                  //     mainAxisSpacing: 10,
+                  //   ),
+                  //   padding: const EdgeInsets.all(14.0),
+                  //   beforeRemove: (item, slotIndex) async {
+                  //     item = item as MyItem;
+                  //     final res = await showDialog<bool>(
+                  //       context: context,
+                  //       builder: (_) => AlertDialog(
+                  //         title: Text('Remove item ${item!.index}?'),
+                  //         actions: [
+                  //           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No')),
+                  //           ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text('Yes')),
+                  //         ],
+                  //       ),
+                  //     );
+                  //     if (res == true) {
+                  //       // key.currentState!.removeSlot(slotIndex);
+                  //     }
+                  //     return false;
+                  //   },
+                  //   onChanged: (items) {
+                  //     print(items);
+                  //   },
+                  // );

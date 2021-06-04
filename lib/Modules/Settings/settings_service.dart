@@ -37,11 +37,9 @@ class TempExportOptionsSerivce {
   TempExportOptionsSerivce._();
 
   static Box<ExportOptions>? _exportBox;
-  static late String _boxName;
-  static Future<void> initBox({required String withName}) async {
-    if (_exportBox != null) return;
-    _boxName = withName;
-    _exportBox = await Hive.openBox(withName);
+  static String _boxName = "temp_settings_id";
+  static Future<void> initBox() async {
+    _exportBox ??= await Hive.openBox(_boxName);
   }
 
   static Future<void> save(ExportOptions options) async {
@@ -55,9 +53,12 @@ class TempExportOptionsSerivce {
 
   static Future<void> clear() async {
     await _exportBox?.clear();
+    return Future<void>.value();
   }
 
   static Future<void> deleteFromDisk() async {
-    await _exportBox?.deleteFromDisk();
+    return _exportBox?.deleteFromDisk();
   }
+
+  static bool isOpen() => _exportBox?.isOpen ?? false;
 }

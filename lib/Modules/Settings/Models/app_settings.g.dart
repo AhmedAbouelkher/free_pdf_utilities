@@ -50,7 +50,9 @@ class PdfPageFormatEnumAdapter extends TypeAdapter<PdfPageFormatEnum> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PdfPageFormatEnumAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+      other is PdfPageFormatEnumAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
 
 class PageOrientationEnumAdapter extends TypeAdapter<PageOrientationEnum> {
@@ -87,7 +89,87 @@ class PageOrientationEnumAdapter extends TypeAdapter<PageOrientationEnum> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PageOrientationEnumAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+      other is PageOrientationEnumAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ImageTypeAdapter extends TypeAdapter<ImageType> {
+  @override
+  final int typeId = 33;
+
+  @override
+  ImageType read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return ImageType.PNG;
+      case 1:
+        return ImageType.JPG;
+      default:
+        return ImageType.PNG;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, ImageType obj) {
+    switch (obj) {
+      case ImageType.PNG:
+        writer.writeByte(0);
+        break;
+      case ImageType.JPG:
+        writer.writeByte(1);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageTypeAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ExportMethodAdapter extends TypeAdapter<ExportMethod> {
+  @override
+  final int typeId = 44;
+
+  @override
+  ExportMethod read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return ExportMethod.Dart;
+      case 1:
+        return ExportMethod.Python;
+      default:
+        return ExportMethod.Dart;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, ExportMethod obj) {
+    switch (obj) {
+      case ExportMethod.Dart:
+        writer.writeByte(0);
+        break;
+      case ExportMethod.Python:
+        writer.writeByte(1);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExportMethodAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
 
 class AppSettingsAdapter extends TypeAdapter<AppSettings> {
@@ -97,7 +179,6 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
   @override
   AppSettings read(BinaryReader reader) {
     final numOfFields = reader.readByte();
-    log(numOfFields.toString());
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -126,29 +207,9 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AppSettingsAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
-}
-
-class NothingAdapter extends TypeAdapter<Nothing> {
-  @override
-  final int typeId = 33;
-
-  @override
-  Nothing read(BinaryReader reader) {
-    return Nothing();
-  }
-
-  @override
-  void write(BinaryWriter writer, Nothing obj) {
-    writer..writeByte(0);
-  }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is NothingAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+      other is AppSettingsAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
 
 class PDFExportOptionsAdapter extends TypeAdapter<PDFExportOptions> {
@@ -183,10 +244,13 @@ class PDFExportOptionsAdapter extends TypeAdapter<PDFExportOptions> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PDFExportOptionsAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+      other is PDFExportOptionsAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
 
-class PDFCompressionExportOptionsAdapter extends TypeAdapter<PDFCompressionExportOptions> {
+class PDFCompressionExportOptionsAdapter
+    extends TypeAdapter<PDFCompressionExportOptions> {
   @override
   final int typeId = 3;
 
@@ -197,16 +261,22 @@ class PDFCompressionExportOptionsAdapter extends TypeAdapter<PDFCompressionExpor
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return PDFCompressionExportOptions(
-      compression: fields[0] as int?,
+      level: fields[0] as int?,
+      imageType: fields[1] as ImageType?,
+      exportMethod: fields[2] as ExportMethod?,
     );
   }
 
   @override
   void write(BinaryWriter writer, PDFCompressionExportOptions obj) {
     writer
-      ..writeByte(1)
+      ..writeByte(3)
       ..writeByte(0)
-      ..write(obj.compression);
+      ..write(obj.level)
+      ..writeByte(1)
+      ..write(obj.imageType)
+      ..writeByte(2)
+      ..write(obj.exportMethod);
   }
 
   @override
@@ -215,5 +285,7 @@ class PDFCompressionExportOptionsAdapter extends TypeAdapter<PDFCompressionExpor
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PDFCompressionExportOptionsAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+      other is PDFCompressionExportOptionsAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }

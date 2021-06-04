@@ -65,7 +65,7 @@ class CompressionCLController {
   ///   * 2: printer
   ///   * 3: ebook
   ///   * 4: screen
-  static Future<CxFile> compress(CxFile file, {int level = 2}) async {
+  static Future<CxFile> compress(CxFile file, {int level = 2, String? generatedName}) async {
     if (!Platform.isMacOS) throw NotSupportedPlatform();
     if (!(await isPythonAvailable())) throw PythonNotInstalled();
 
@@ -77,7 +77,10 @@ class CompressionCLController {
     try {
       await _shell
           .run("python ${_kPythonCompressionScriptDirectory.path} -c $level -o '$_generatedName.pdf' $_fileName.pdf");
-      final XFile _generatedCompressedFile = XFile(join(dirname(file.path), '$_generatedName.pdf'));
+      final XFile _generatedCompressedFile = XFile(
+        join(dirname(file.path), '$_generatedName.pdf'),
+        name: generatedName,
+      );
       return _generatedCompressedFile.toCxFileSync();
     } catch (e) {
       rethrow;

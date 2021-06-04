@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:filesize/filesize.dart';
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
+
+import '../command_line_tools.dart';
 
 abstract class AssetsController {
   List<CxFile>? get docImages {
@@ -27,6 +30,32 @@ abstract class AssetsController {
 
   Future<void> dispose() {
     throw UnimplementedError();
+  }
+
+  void showInFinder(String filePath, BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        content: Row(
+          children: [
+            Text("PDF Saved", style: TextStyle(fontSize: 12, color: Colors.white)),
+            SizedBox(width: 5),
+            TextButton(
+              onPressed: () {
+                CommandLineController.openDocument(filePath);
+              },
+              child: Text(
+                "Open File",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.cyan,
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -87,5 +116,6 @@ extension XfileToFile on XFile {
 ///`path/to/file.extension` to `file`.
 String fileName(String filePath) {
   List<String> _splittedBaseName = path.basename(filePath).split(".");
+  if (_splittedBaseName.length == 1) return filePath;
   return _splittedBaseName.getRange(0, _splittedBaseName.length - 1).join(".");
 }

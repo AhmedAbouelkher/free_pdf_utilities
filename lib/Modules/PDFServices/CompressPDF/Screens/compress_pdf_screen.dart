@@ -1,5 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
+import 'package:url_launcher/url_launcher.dart' as urlLauncher;
 import 'package:free_pdf_utilities/Modules/PDFServices/CompressPDF/pdf_compression_controller.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
@@ -8,7 +11,8 @@ import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
 import 'package:free_pdf_utilities/Screens/root_screen.dart';
 
-//TODO: Finish setting up Compressed PDF export.
+//TODO: Show dialog to show compression summary
+//TODO: handle compression exceptions
 
 class CompressPDFScreen extends StatefulWidget {
   const CompressPDFScreen({Key? key}) : super(key: key);
@@ -19,7 +23,9 @@ class CompressPDFScreen extends StatefulWidget {
 
 class _CompressPDFScreenState extends State<CompressPDFScreen> {
   late PDFCompressionController _pdfCompressionController;
+  AppSettingsProvider? _appSettingsProvider;
   bool _isLoading = false;
+
   @override
   void initState() {
     _pdfCompressionController = PDFCompressionController();
@@ -27,9 +33,23 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _appSettingsProvider ??= context.read<AppSettingsProvider>();
+  }
+
+  @override
   void dispose() {
     _pdfCompressionController.dispose();
     super.dispose();
+  }
+
+  void _inProgress() {
+    setState(() => _isLoading = true);
+  }
+
+  void _finishedProcess() {
+    if (_isLoading && mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -41,8 +61,6 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
         leading: [
           IconButton(
             onPressed: () {
-              // if (_assetsController.isEmptyDocument) return Navigator.pop(context);
-              // showDialog(context: context, builder: (_) => _renderDismissAlertDialog());
               Navigator.pop(context);
             },
             splashRadius: 15,
@@ -53,31 +71,44 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
         actions: [_renderExportPDFButton()],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _pdfCompressionController.pickFiles(),
+        onPressed: () async {
+          await _pdfCompressionController.pickFiles();
+
+          ///Called when picking new file to generate new temp export options.
+          _appSettingsProvider?.generateTempExportOptions();
+        },
         child: Icon(Icons.add),
       ),
       body: SafeArea(
-        child: Center(
-          child: StreamBuilder<CxFile>(
-              stream: _pdfCompressionController.pdfFileStream,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Text("Pick you PDF file...");
-                }
-                final _file = snapshot.data!;
+        child: Stack(
+          children: [
+            Center(
+              child: StreamBuilder<CxFile>(
+                  stream: _pdfCompressionController.pdfFileStream,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Text("Pick you PDF file...");
+                    }
+                    final _file = snapshot.data!;
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(CupertinoIcons.doc_richtext, size: _size.height / 2),
-                    SizedBox(height: 30),
-                    Text(_file.name!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                    SizedBox(height: 20),
-                    Text(_file.updatedAt?.toIso8601String() ?? "-"),
-                    Text(_file.fileSize ?? "-")
-                  ],
-                );
-              }),
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(CupertinoIcons.doc_richtext, size: _size.height / 2),
+                        SizedBox(height: 30),
+                        Text(_file.name!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                        SizedBox(height: 20),
+                        Text(_file.updatedAt?.toIso8601String() ?? "-"),
+                        Text(_file.fileSize ?? "-")
+                      ],
+                    );
+                  }),
+            ),
+            if (_isLoading) ...[
+              Positioned.fill(child: Container(color: Colors.black54)),
+              Center(child: CircularProgressIndicator.adaptive()),
+            ]
+          ],
         ),
       ),
     );
@@ -90,13 +121,13 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
         final bool _canExport = snapshot.hasData;
 
         void _exportPDF() async {
-          // if (_assetsController.isEmptyDocument) return;
-
-          final _exportOptions = await showDialog<ExportOptions>(
+          final _exportOptions = await showDialog<PDFCompressionExportOptions>(
             context: context,
             builder: (_) => _PDFExportDialog(
-              onSave: (exportOptions) {
-                // _appSettingsProvider!.updateTempExportOptions(exportOptions);
+              onSave: (exportOptions) async {
+                final _appSettings = AppSettings(pdfCompressionExportOptions: exportOptions);
+                _appSettingsProvider!.updateSettings(_appSettings);
+                await _appSettingsProvider!.updateTempExportOptions(exportOptions);
               },
               onOpenSettings: () {
                 Navigator.push(
@@ -111,17 +142,17 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
             ),
           );
           if (_exportOptions == null) return;
-          setState(() => _isLoading = true);
+          _inProgress();
 
           try {
-            // final _file = await _assetsController.generateDoument(_exportOptions);
-            setState(() => _isLoading = false);
-            // final _filePath = await _assetsController.exportDocument(_file);
-            // _showOnFinder(_filePath);
+            final _file = await _pdfCompressionController.generateDoument(_exportOptions);
+            _finishedProcess();
+            final _filePath = await _pdfCompressionController.exportDocument(_file);
+            _pdfCompressionController.showInFinder(_filePath, context);
           } catch (e) {
             print(e);
           } finally {
-            if (_isLoading && mounted) setState(() => _isLoading = false);
+            _finishedProcess();
           }
         }
 
@@ -137,7 +168,7 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
 }
 
 class _PDFExportDialog extends StatefulWidget {
-  final ValueChanged<PDFExportOptions> onSave;
+  final ValueChanged<PDFCompressionExportOptions> onSave;
   final VoidCallback? onOpenSettings;
   const _PDFExportDialog({
     Key? key,
@@ -151,19 +182,20 @@ class _PDFExportDialog extends StatefulWidget {
 
 class __PDFExportDialogState extends State<_PDFExportDialog> {
   bool _isAdvanced = false;
+  late AppSettingsProvider _settingsProvider;
+  late ExportOptions _options;
+
+  void _changeOptions(PDFCompressionExportOptions newOptions) {
+    final _newOptions = (_options as PDFCompressionExportOptions).merge(newOptions);
+    widget.onSave(_newOptions);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final _settingsProvider = context.read<AppSettingsProvider>();
+    _settingsProvider = context.watch<AppSettingsProvider>();
     final _appSettings = _settingsProvider.appSettings();
-    final _tempExportOptions = _settingsProvider.readTempExportOptions<PDFExportOptions>();
-
-    final _options = (_tempExportOptions ?? _appSettings.exportOptions) ?? const PDFExportOptions();
-
-    void _changeOptions(PDFExportOptions newOptions) {
-      final _newOptions = _options.merge(newOptions);
-      widget.onSave(_newOptions);
-    }
-
+    final _tempExportOptions = _settingsProvider.readTempExportOptions<PDFCompressionExportOptions>();
+    _options = (_tempExportOptions ?? _appSettings.pdfCompressionExportOptions) ?? const PDFCompressionExportOptions();
     return AlertDialog(
       title: Text("Compress PDF"),
       contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0.0),
@@ -174,7 +206,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
             RadioListTile<bool>(
               contentPadding: EdgeInsets.zero,
               title: Text(
-                "Recommended Settings.",
+                "Default Export Settings. (Recommended)",
                 style: TextStyle(fontSize: 12),
               ),
               value: false,
@@ -186,7 +218,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
             RadioListTile<bool>(
               contentPadding: EdgeInsets.zero,
               title: Text(
-                "Nerds' Settings.",
+                "Nerds' Export Settings.",
                 style: TextStyle(fontSize: 12),
               ),
               value: true,
@@ -206,7 +238,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
               child: TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  // onOpenSettings?.call();
+                  widget.onOpenSettings?.call();
                 },
                 child: Text(
                   "Change defaults...",
@@ -242,123 +274,139 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
       padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: Column(
         children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 10),
+            child: DropDownListTile<int>(
+              title: "Compression Level",
+              initialValue: (_options as PDFCompressionExportOptions).level ?? CompressionLevel.level2,
+              options: const [
+                DropdownMenuItem(
+                  child: Text("Default"),
+                  value: CompressionLevel.level0,
+                ),
+                DropdownMenuItem(
+                  child: Text("Prepress"),
+                  value: CompressionLevel.level1,
+                ),
+                DropdownMenuItem(
+                  child: Text("Printer"),
+                  value: CompressionLevel.level2,
+                ),
+                DropdownMenuItem(
+                  child: Text("Ebook"),
+                  value: CompressionLevel.level3,
+                ),
+                DropdownMenuItem(
+                  child: Text("Screen"),
+                  value: CompressionLevel.level4,
+                ),
+              ],
+              onChanged: (level) {
+                _changeOptions(PDFCompressionExportOptions(level: level));
+              },
+            ),
+          ),
+          // SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Divider(),
+          ),
+          _renderPythonOptions(),
           _renderDartOptions(),
         ],
       ),
     );
   }
 
+  Widget _renderPythonOptions() {
+    return _RadioOption<ExportMethod>(
+      title: "Python Compression",
+      value: ExportMethod.Python,
+      groupValue: (_options as PDFCompressionExportOptions).exportMethod ?? ExportMethod.Python,
+      onChecked: (exportMethod) {
+        _changeOptions(PDFCompressionExportOptions(exportMethod: exportMethod));
+      },
+    );
+  }
+
   Widget _renderDartOptions() {
+    final _exportMethod = (_options as PDFCompressionExportOptions).exportMethod ?? ExportMethod.Python;
     return Column(
       children: [
-        _RadioOption(
-          title: "Pure Dart Compression (Not optimized)",
-          value: false,
-          onChecked: (value) {},
-          groupValue: false,
-        ),
-        SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsetsDirectional.only(start: 10),
-          child: Column(
-            children: [
-              DropDownListTile<PdfPageFormatEnum>(
-                title: "Paper Size",
-                initialValue: PdfPageFormatEnum.A4,
-                options: const [
-                  DropdownMenuItem(
-                    child: Text("A3"),
-                    value: PdfPageFormatEnum.A3,
-                  ),
-                  DropdownMenuItem(
-                    child: Text("A4"),
-                    value: PdfPageFormatEnum.A4,
-                  ),
-                  DropdownMenuItem(
-                    child: Text("A5"),
-                    value: PdfPageFormatEnum.A5,
-                  ),
-                  DropdownMenuItem(
-                    child: Text("Letter"),
-                    value: PdfPageFormatEnum.Letter,
-                  ),
-                ],
-                onChanged: (pageFormate) {
-                  // _changeOptions(PDFExportOptions(pageFormat: pageFormate));
-                },
-              ),
-              SizedBox(height: 5),
-              DropDownListTile<PdfPageFormatEnum>(
-                enabled: false,
-                title: "Paper Size",
-                initialValue: PdfPageFormatEnum.A4,
-                options: const [
-                  DropdownMenuItem(
-                    child: Text("A3"),
-                    value: PdfPageFormatEnum.A3,
-                  ),
-                  DropdownMenuItem(
-                    child: Text("A4"),
-                    value: PdfPageFormatEnum.A4,
-                  ),
-                  DropdownMenuItem(
-                    child: Text("A5"),
-                    value: PdfPageFormatEnum.A5,
-                  ),
-                  DropdownMenuItem(
-                    child: Text("Letter"),
-                    value: PdfPageFormatEnum.Letter,
-                  ),
-                ],
-                onChanged: (pageFormate) {
-                  // _changeOptions(PDFExportOptions(pageFormat: pageFormate));
-                },
-              ),
-            ],
+        _RadioOption<ExportMethod>(
+          enabled: false,
+          title: "Pure Dart Compression (!optimized)",
+          value: ExportMethod.Dart,
+          groupValue: _exportMethod,
+          onChecked: (exportMethod) {
+            _changeOptions(PDFCompressionExportOptions(exportMethod: exportMethod));
+          },
+          details: TextButton(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (_) {
+                    return _DartCompressionDisableAlertDialog();
+                  });
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              "Learn more",
+              style: TextStyle(fontSize: 10),
+            ),
           ),
         ),
+        if (_exportMethod == ExportMethod.Dart) ...[
+          SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 10),
+            child: DropDownListTile<ImageType>(
+              title: "Image Type",
+              initialValue: (_options as PDFCompressionExportOptions).imageType ?? ImageType.PNG,
+              options: const [
+                DropdownMenuItem(
+                  child: Text("PNG"),
+                  value: ImageType.PNG,
+                ),
+                DropdownMenuItem(
+                  child: Text("JPEG/JPG"),
+                  value: ImageType.JPG,
+                ),
+              ],
+              onChanged: (imageType) {
+                _changeOptions(PDFCompressionExportOptions(imageType: imageType));
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _CheckBoxOption extends StatelessWidget {
-  final String title;
-  final bool value;
-  final ValueChanged<bool> onChecked;
-  final bool enabled;
-  const _CheckBoxOption({
-    Key? key,
-    this.enabled = true,
-    required this.title,
-    required this.value,
-    required this.onChecked,
-  }) : super(key: key);
-
+class _DartCompressionDisableAlertDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final _size = MediaQuery.of(context).size;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Container(
-            constraints: BoxConstraints(maxWidth: _size.width / 2.0, minWidth: 0),
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 12, color: !enabled ? Colors.white60 : null),
-            ),
+    return AlertDialog(
+      title: Text("Pure Dart Compression is disabled"),
+      contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0.0),
+      content: Text(
+          '''Due to the low effeicency of the Dart compression algorithm the opetion to enable it is disabled right now.\n\n'''
+          '''If you beleive you can help us to create a powerfull algorithm, create a new PR.'''),
+      actions: [
+        TextButton.icon(
+          icon: Icon(FontAwesomeIcons.github, color: Colors.white),
+          label: const Text(
+            "Go to Github",
+            style: TextStyle(fontWeight: FontWeight.normal, color: Colors.white),
           ),
-        ),
-        SizedBox(width: 10),
-        SizedBox(
-          width: 20,
-          height: 20,
-          child: Checkbox(
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            value: value,
-            onChanged: !enabled ? null : (value) => onChecked(value!),
-          ),
+          onPressed: () {
+            Navigator.of(context).pop();
+            urlLauncher.launch(kAppRepo);
+          },
         ),
       ],
     );
@@ -371,26 +419,33 @@ class _RadioOption<T> extends StatelessWidget {
   final T groupValue;
   final ValueChanged<T> onChecked;
   final bool enabled;
+  final Widget? details;
   const _RadioOption({
-    this.enabled = true,
     Key? key,
     required this.title,
     required this.value,
     required this.groupValue,
     required this.onChecked,
+    this.enabled = true,
+    this.details,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final _size = MediaQuery.of(context).size;
+    var _color = !enabled ? Colors.transparent : null;
     return InkWell(
+      splashColor: _color,
+      highlightColor: _color,
+      hoverColor: _color,
       onTap: () {
-        onChecked(value);
+        if (enabled) onChecked(value);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5.0),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: details == null ? CrossAxisAlignment.center : CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: 20,
@@ -403,14 +458,18 @@ class _RadioOption<T> extends StatelessWidget {
               ),
             ),
             SizedBox(width: 10),
-            Expanded(
-              child: Container(
-                constraints: BoxConstraints(maxWidth: _size.width / 2.0, minWidth: 0),
-                child: Text(
-                  title,
-                  style: TextStyle(fontSize: 12, color: !enabled ? Colors.white60 : null),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  constraints: BoxConstraints(maxWidth: _size.width / 2.0, minWidth: 0),
+                  child: Text(
+                    title,
+                    style: TextStyle(fontSize: 12, color: !enabled ? Colors.white60 : null),
+                  ),
                 ),
-              ),
+                details ?? SizedBox(),
+              ],
             ),
           ],
         ),

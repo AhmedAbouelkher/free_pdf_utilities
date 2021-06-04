@@ -4,7 +4,6 @@ import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/CompressPDF/Screens/compress_pdf_screen.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/Screens/Images_to_PDF_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
-import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:responsive_grid/responsive_grid.dart';
 
 class RootScreen extends StatefulWidget {
@@ -16,12 +15,6 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen> {
   void _navigateToSettings() {
     Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen()));
-  }
-
-  @override
-  void initState() {
-    context.read<AppSettingsProvider>().desposeTempExportOptions();
-    super.initState();
   }
 
   @override

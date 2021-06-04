@@ -20,13 +20,6 @@ class AppSettingsProvider extends ChangeNotifier {
     return SettingService.save(_newSettings);
   }
 
-  Future<void> resetExportOptions() {
-    final _newSettings = SettingService.read();
-    _appSettings = _newSettings;
-    notifyListeners();
-    return SettingService.save(_newSettings);
-  }
-
   AppSettings appSettings() {
     return _appSettings ?? SettingService.read();
   }
@@ -37,14 +30,33 @@ class AppSettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> createTempExportOptions(String tempStorageName) async {
-    await TempExportOptionsSerivce.initBox(withName: tempStorageName);
-    log("New box with created with name: $tempStorageName");
-    final _exportOptions = SettingService.read().exportOptions;
-    if (_exportOptions != null) await TempExportOptionsSerivce.save(_exportOptions);
+  void updateSettings(AppSettings settings) {
+    var _oldAppSettings = SettingService.read();
+    final _newSettings = _oldAppSettings.merge(settings);
+    _appSettings = _newSettings;
+    notifyListeners();
   }
 
-  Future<void> updateTempExportOptions(ExportOptions options) async {
+  Future<void> resetExportOptions() {
+    final _newSettings = SettingService.read();
+    _appSettings = _newSettings;
+    notifyListeners();
+    return SettingService.save(_newSettings);
+  }
+
+  //* Temp Export options
+
+  Future<void> generateTempExportOptions() async {
+    if (TempExportOptionsSerivce.isOpen()) {
+      await TempExportOptionsSerivce.clear();
+    } else {
+      await TempExportOptionsSerivce.initBox();
+      log("Temp file export opetions box was created");
+    }
+    print("object");
+  }
+
+  Future<void> updateTempExportOptions<T extends ExportOptions>(T options) async {
     return await TempExportOptionsSerivce.save(options);
   }
 
@@ -54,6 +66,6 @@ class AppSettingsProvider extends ChangeNotifier {
 
   Future<void> desposeTempExportOptions() async {
     await TempExportOptionsSerivce.deleteFromDisk();
-    log("Box was cleared from memory");
+    log("Temp file export opetions box was desposed");
   }
 }

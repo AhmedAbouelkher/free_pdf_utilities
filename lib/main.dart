@@ -26,12 +26,13 @@ void main() async {
 
   await Hive.initFlutter(kAppName);
 
-  Hive.registerAdapter(NothingAdapter());
   Hive.registerAdapter(PageOrientationEnumAdapter());
   Hive.registerAdapter(PdfPageFormatEnumAdapter());
   Hive.registerAdapter(AppSettingsAdapter());
   Hive.registerAdapter(PDFExportOptionsAdapter());
   Hive.registerAdapter(PDFCompressionExportOptionsAdapter());
+  Hive.registerAdapter(ImageTypeAdapter());
+  Hive.registerAdapter(ExportMethodAdapter());
 
   try {
     await SettingService.init();

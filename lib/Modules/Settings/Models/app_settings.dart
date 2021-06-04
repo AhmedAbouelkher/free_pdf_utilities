@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -49,30 +47,8 @@ class AppSettings {
   }
 
   @override
-  String toString() => 'AppSettings(themeMode: $themeMode, exportOptions: $exportOptions)';
-}
-
-@HiveType(typeId: 33)
-class Nothing {}
-
-@HiveType(typeId: 11)
-enum PdfPageFormatEnum {
-  @HiveField(0)
-  A3,
-  @HiveField(1)
-  A4,
-  @HiveField(2)
-  A5,
-  @HiveField(3)
-  Letter
-}
-
-@HiveType(typeId: 22)
-enum PageOrientationEnum {
-  @HiveField(0)
-  Landscape,
-  @HiveField(1)
-  Portrait
+  String toString() =>
+      'AppSettings(themeMode: $themeMode, exportOptions: $exportOptions, pdfCompressionExportOptions: $pdfCompressionExportOptions)';
 }
 
 @HiveType(typeId: 2)
@@ -111,31 +87,58 @@ class PDFExportOptions extends ExportOptions {
 
 @HiveType(typeId: 3)
 class PDFCompressionExportOptions extends ExportOptions {
-  ///Compression value between `50%` to `100%`.
+  ///Compression level between `0` to `4`.
   @HiveField(0)
-  final int? compression;
+  final int? level;
+
+  ///`PNG` or `JPG`.
+  @HiveField(1)
+  final ImageType? imageType;
+
+  ///Export using `Native Dart` or `Python`.
+  ///
+  /// (Default is `Python`, because it is more effecient).
+  @HiveField(2)
+  final ExportMethod? exportMethod;
 
   const PDFCompressionExportOptions({
-    this.compression,
+    this.level,
+    this.imageType,
+    this.exportMethod,
   });
 
   PDFCompressionExportOptions copyWith({
-    int? compression,
+    int? level,
+    ImageType? imageType,
+    ExportMethod? exportMethod,
   }) {
     return PDFCompressionExportOptions(
-      compression: compression ?? this.compression,
+      level: level ?? this.level,
+      imageType: imageType ?? this.imageType,
+      exportMethod: exportMethod ?? this.exportMethod,
     );
   }
 
   PDFCompressionExportOptions merge(PDFCompressionExportOptions? other) {
     if (other == null) return this;
     return copyWith(
-      compression: other.compression,
+      level: other.level,
+      imageType: other.imageType,
+      exportMethod: other.exportMethod,
     );
   }
 
   @override
-  String toString() => 'PDFCompressionExportOptions(compression: $compression)';
+  String toString() => 'PDFCompressionExportOptions(level: $level, imageType: $imageType, exportMethod: $exportMethod)';
+}
+
+class CompressionLevel {
+  CompressionLevel._();
+  static const level0 = 0;
+  static const level1 = 1;
+  static const level2 = 2;
+  static const level3 = 3;
+  static const level4 = 4;
 }
 
 class SettingsThemeMode {
@@ -164,6 +167,42 @@ class SettingsThemeMode {
       return SettingsThemeMode.system;
     }
   }
+}
+
+@HiveType(typeId: 11)
+enum PdfPageFormatEnum {
+  @HiveField(0)
+  A3,
+  @HiveField(1)
+  A4,
+  @HiveField(2)
+  A5,
+  @HiveField(3)
+  Letter
+}
+
+@HiveType(typeId: 22)
+enum PageOrientationEnum {
+  @HiveField(0)
+  Landscape,
+  @HiveField(1)
+  Portrait
+}
+
+@HiveType(typeId: 33)
+enum ImageType {
+  @HiveField(0)
+  PNG,
+  @HiveField(1)
+  JPG
+}
+
+@HiveType(typeId: 44)
+enum ExportMethod {
+  @HiveField(0)
+  Dart,
+  @HiveField(1)
+  Python,
 }
 
 PdfPageFormat? getPdfPageFormat(PdfPageFormatEnum? pageFormatEnum) {

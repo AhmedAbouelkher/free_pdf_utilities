@@ -5,6 +5,7 @@ import 'package:date_time_format/date_time_format.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/exception.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller.dart';
@@ -86,7 +87,7 @@ class PDFAssetsController extends AssetsController {
   Future<String> exportDocument(XFile file) async {
     String? path = await getSavePath(suggestedName: _savedDocumentName, confirmButtonText: "Save PDF");
 
-    if (path == null) throw Exception("User Canceled");
+    if (path == null) throw UserCancelled();
 
     await file.saveTo(path);
     return Future.value(path);

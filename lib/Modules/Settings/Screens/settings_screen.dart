@@ -13,6 +13,8 @@ enum SettingsTap {
   About,
 }
 
+//TODO: Fix and test settings errors
+
 class SettingsScreen extends StatefulWidget {
   final SettingsTap settingsTap;
   const SettingsScreen({
@@ -53,6 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _handleSave(AppSettings newSettings) {
     var _appSettingsProvider = context.read<AppSettingsProvider>();
     _appSettingsProvider.saveSettings(newSettings);
+    //TODO
     _appSettingsProvider.desposeTempExportOptions();
   }
 
@@ -159,7 +162,7 @@ class ExportOptionsSettingsTap extends StatelessWidget {
           ),
           title: DropDownListTile<PdfPageFormatEnum>(
             title: "Paper Size",
-            initialValue: _appSettings.exportOptions!.pageFormat ?? PdfPageFormatEnum.A4,
+            initialValue: _appSettings.exportOptions?.pageFormat ?? PdfPageFormatEnum.A4,
             options: const [
               DropdownMenuItem(
                 child: Text("A3"),
@@ -191,7 +194,7 @@ class ExportOptionsSettingsTap extends StatelessWidget {
           ),
           title: DropDownListTile<PageOrientationEnum>(
             title: "Layout",
-            initialValue: _appSettings.exportOptions!.pageOrientation ?? PageOrientationEnum.Portrait,
+            initialValue: _appSettings.exportOptions?.pageOrientation ?? PageOrientationEnum.Portrait,
             options: const [
               DropdownMenuItem(
                 child: Text("Portrait"),

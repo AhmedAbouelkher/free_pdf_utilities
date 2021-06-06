@@ -35,10 +35,10 @@ abstract class AssetsController {
   void showInFinder(String filePath, BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        // backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         content: Row(
           children: [
-            Text("PDF Saved", style: TextStyle(fontSize: 12, color: Colors.white)),
+            Text("PDF Saved", style: TextStyle(fontSize: 12)),
             SizedBox(width: 5),
             TextButton(
               onPressed: () {
@@ -108,6 +108,10 @@ extension XfileToFile on XFile {
       size: (await this.readAsBytes()).length,
       updatedAt: await this.lastModified(),
     );
+  }
+
+  Future<int> sizeInBytes() async {
+    return (await readAsBytes()).length;
   }
 }
 

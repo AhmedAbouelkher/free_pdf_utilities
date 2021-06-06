@@ -3,13 +3,15 @@ import 'dart:typed_data' show Uint8List;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
-import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_tools.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_tools.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/exception.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
+
+export 'package:free_pdf_utilities/Modules/Common/Utils/exception.dart';
 
 //TODO: Create more effient image compression alogrithm (Dart)
 
@@ -17,6 +19,17 @@ const String kPDFLabel = '@_kPDFLabel';
 
 List<String> _pdfExtensions() {
   return ['pdf'];
+}
+
+class CompressionSummery {
+  final num originalSize;
+  final num compressionSize;
+  CompressionSummery({
+    required this.originalSize,
+    required this.compressionSize,
+  });
+
+  num get reduction => (1 - (compressionSize / originalSize)) * 100;
 }
 
 class _PDFCompressionControllerThreading {
@@ -30,6 +43,146 @@ class _PDFCompressionControllerThreading {
     this.file,
     this.metaData,
   });
+}
+
+class PDFCompressionController extends AssetsController {
+  CxFile? _pdfFile;
+  late StreamController<CxFile> _streamController;
+
+  Stream<CxFile> get pdfFileStream => _streamController.stream.asBroadcastStream();
+
+  String? _documentName;
+
+  String? get documentName => _documentName;
+
+  PDFCompressionController() {
+    _streamController = StreamController.broadcast();
+  }
+
+  CompressionSummery? _compressionSummery;
+  CompressionSummery? get compressionSummery => _compressionSummery;
+
+  @override
+  Future<String> exportDocument(XFile file) async {
+    print(_documentName);
+    var _generatedFileName = "${fileName(_documentName!)}-compressed.pdf";
+    String? path = await getSavePath(suggestedName: _generatedFileName, confirmButtonText: "Save PDF");
+
+    if (path == null) throw UserCancelled();
+
+    await file.saveTo(path);
+    return Future.value(path);
+  }
+
+  @override
+  Future<void> pickFiles() async {
+    final typeGroup = XTypeGroup(label: kImagesLabel, extensions: _pdfExtensions());
+    final _file = await openFile(
+      acceptedTypeGroups: [typeGroup],
+      confirmButtonText: "Choose PDF",
+    );
+    if (_file == null) return;
+    _pdfFile = await _file.toCxFile();
+
+    _documentName = _pdfFile!.name!;
+    _streamController.sink.add(_pdfFile!);
+  }
+
+  @override
+  Future<XFile> generateDoument(ExportOptions exportOptions, {CxFile? origin}) async {
+    if (_pdfFile == null && origin == null) throw InvalidFile();
+
+    final _options = exportOptions as PDFCompressionExportOptions;
+
+    //* Checks whether the compression feature can be available or not.
+    bool _isExportMethodPython = (_options.exportMethod ?? ExportMethod.Python) == ExportMethod.Python;
+    if (!_isExportMethodPython && !(await isRasterFeatureAvailable())) throw PDFRasterNotSupported();
+
+    final _tempPDFFile = _pdfFile ?? origin;
+    _documentName = fileName(_tempPDFFile!.path);
+
+    final _originalFileSize = await _tempPDFFile.internal.sizeInBytes();
+    //? Python Compression
+    if (_isExportMethodPython) {
+      try {
+        final _level = _options.level ?? CompressionLevel.level2;
+        final file = await PythonCompressionCLController.compress(_tempPDFFile, level: _level);
+        final _compressionFileSize = await file.internal.sizeInBytes();
+        _compressionSummery =
+            CompressionSummery(originalSize: _originalFileSize, compressionSize: _compressionFileSize);
+        return Future.value(file.internal);
+      } on ShellException catch (e) {
+        throw UnkownPythonCompressionException(e);
+      } catch (e) {
+        rethrow;
+      }
+    }
+    //? Dart Compression
+    try {
+      //? Convert PDF to images
+      final _images = await _convertPDFToImages(_tempPDFFile);
+      final _dataLoader = _PDFCompressionControllerThreading(exportOptions: _options, images: _images);
+      final _generatedData =
+          await compute<_PDFCompressionControllerThreading, Uint8List>(_generatePDFDocument, _dataLoader);
+
+      final _mimeType = "application/pdf";
+
+      final file = XFile.fromData(_generatedData, mimeType: _mimeType);
+      final _compressionFileSize = await file.sizeInBytes();
+      _compressionSummery = CompressionSummery(originalSize: _originalFileSize, compressionSize: _compressionFileSize);
+      return Future.value(file);
+    } catch (e) {
+      throw UnkownDartCompressionException(e);
+    }
+  }
+
+  ///Checks the reseration feature availability on the current platform.
+  Future<bool> isRasterFeatureAvailable() async {
+    var printingInfo = await Printing.info();
+    return printingInfo.canRaster;
+  }
+
+  ///Checks whether the `GhostScript` is available on the current platform or not.
+  ///
+  ///Check out: [ghostscript.com](https://www.ghostscript.com/download.html)
+  Future<bool> isGhostScriptAvailable() {
+    return PythonCompressionCLController.isGhostScriptAvailable();
+  }
+
+  ///Checks for `Python` availability.
+  ///
+  ///Check out: [python.org](https://www.python.org/)
+  Future<bool> isPythonAvailable() {
+    return PythonCompressionCLController.isPythonAvailable();
+  }
+
+  ///Checks for `GhostScript` and `Python` availability.
+  ///
+  ///See also:
+  ///- isGhostScriptAvailable()
+  ///- isPythonAvailable()
+  ///
+  Future<bool> isPythonCompressionServiceAvailable() async {
+    return (await PythonCompressionCLController.isPythonAvailable() &&
+        await PythonCompressionCLController.isGhostScriptAvailable());
+  }
+
+  @override
+  Future<void> dispose() {
+    return _streamController.close();
+  }
+
+  Future<List<Uint8List>> _convertPDFToImages(CxFile file) async {
+    final _fileUnit8ListData = await file.internal.readAsBytes();
+
+    List<Uint8List> _unCompressedImages = [];
+
+    await for (var page in Printing.raster(_fileUnit8ListData)) {
+      final _image = await page.toPng();
+      _unCompressedImages.add(_image);
+    }
+    return Future.value(_unCompressedImages);
+  }
 }
 
 Future<List<Uint8List>> _compressImages(List<Uint8List> images, PDFCompressionExportOptions exportOptions) async {
@@ -84,106 +237,38 @@ Future<Uint8List> _generatePDFDocument(_PDFCompressionControllerThreading dataLo
   return _data;
 }
 
-class PDFCompressionController extends AssetsController {
-  CxFile? _pdfFile;
-  late StreamController<CxFile> _streamController;
+class PythonCompressionControllerNotifier extends ChangeNotifier {
+  late PDFCompressionController _compressionController;
 
-  Stream<CxFile> get pdfFileStream => _streamController.stream.asBroadcastStream();
-
-  String? _documentName;
-
-  String? get documentName => _documentName;
-
-  PDFCompressionController() {
-    _streamController = StreamController.broadcast();
+  void init(PDFCompressionController controller) {
+    _compressionController = controller;
   }
 
-  @override
-  Future<String> exportDocument(XFile file) async {
-    print(_documentName);
-    var _generatedFileName = "${fileName(_documentName!)}-compressed.pdf";
-    String? path = await getSavePath(suggestedName: _generatedFileName, confirmButtonText: "Save PDF");
+  bool _isPythonAvailable = false;
+  bool _isGhostScriptAvailable = false;
 
-    if (path == null) throw Exception("User Canceled");
+  ///`Getter` Checks for `Python` availability.
+  ///
+  ///Check out: [python.org](https://www.python.org/)
+  bool get isPythonAvailable => _isPythonAvailable;
 
-    await file.saveTo(path);
-    return Future.value(path);
-  }
+  ///`Getter` Checks whether the `GhostScript` is available on the current platform or not.
+  ///
+  ///Check out: [ghostscript.com](https://www.ghostscript.com/download.html)
+  bool get isGhostScriptAvailable => _isGhostScriptAvailable;
 
-  @override
-  Future<void> pickFiles() async {
-    final typeGroup = XTypeGroup(label: kImagesLabel, extensions: _pdfExtensions());
-    final _file = await openFile(
-      acceptedTypeGroups: [typeGroup],
-      confirmButtonText: "Choose PDF",
-    );
-    if (_file == null) return null;
-    _pdfFile = await _file.toCxFile();
+  ///`Getter` Checks for `GhostScript` and `Python` availability.
+  ///
+  ///See also:
+  ///- isGhostScriptAvailable
+  ///- isPythonAvailable
+  ///
+  bool get isAllServicesAvailable => isPythonAvailable && isGhostScriptAvailable;
 
-    _documentName = _pdfFile!.name!;
-    _streamController.sink.add(_pdfFile!);
-  }
-
-  @override
-  Future<XFile> generateDoument(ExportOptions exportOptions, {CxFile? origin}) async {
-    final _options = exportOptions as PDFCompressionExportOptions;
-
-    //* Checks whether the compression feature can be available or not.
-    bool _isExportMethodPython = (_options.exportMethod ?? ExportMethod.Python) == ExportMethod.Python;
-    if (!_isExportMethodPython && !(await isFeatureAvailable())) throw PDFRasterNotSupport();
-
-    if (_pdfFile == null && origin == null) throw InvalidFile();
-
-    final _tempPDFFile = _pdfFile ?? origin;
-    _documentName = fileName(_tempPDFFile!.path);
-
-    //? Python Compression
-    if (_isExportMethodPython) {
-      try {
-        final _level = _options.level ?? CompressionLevel.level2;
-        final file = await CompressionCLController.compress(_tempPDFFile, level: _level);
-        return Future.value(file.internal);
-      } catch (e) {
-        rethrow;
-      }
-    }
-    //? Dart Compression
-    try {
-      //? Convert PDF to images
-      final _images = await _convertPDFToImages(_tempPDFFile);
-      final _dataLoader = _PDFCompressionControllerThreading(exportOptions: _options, images: _images);
-      final _generatedData =
-          await compute<_PDFCompressionControllerThreading, Uint8List>(_generatePDFDocument, _dataLoader);
-
-      final _mimeType = "application/pdf";
-
-      final file = XFile.fromData(_generatedData, mimeType: _mimeType);
-
-      return Future.value(file);
-    } catch (e) {
-      throw UnkownDartCompressionException(e);
-    }
-  }
-
-  Future<bool> isFeatureAvailable() async {
-    var printingInfo = await Printing.info();
-    return printingInfo.canRaster;
-  }
-
-  @override
-  Future<void> dispose() {
-    return _streamController.close();
-  }
-
-  Future<List<Uint8List>> _convertPDFToImages(CxFile file) async {
-    final _fileUnit8ListData = await file.internal.readAsBytes();
-
-    List<Uint8List> _unCompressedImages = [];
-
-    await for (var page in Printing.raster(_fileUnit8ListData)) {
-      final _image = await page.toPng();
-      _unCompressedImages.add(_image);
-    }
-    return Future.value(_unCompressedImages);
+  ///Check if installed or not.
+  void checkDependices() async {
+    _isPythonAvailable = await _compressionController.isPythonAvailable();
+    _isGhostScriptAvailable = await _compressionController.isGhostScriptAvailable();
+    notifyListeners();
   }
 }

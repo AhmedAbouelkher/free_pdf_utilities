@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
-import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:process_run/shell.dart';
+
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 
 import 'exception.dart';
 
@@ -35,7 +36,7 @@ class CommandLineController {
   }
 }
 
-class CompressionCLController {
+class PythonCompressionCLController {
   ///Checks if Python SDK is installed on the current system
   static Future<bool> isPythonAvailable() async {
     final Shell _shell = Shell(workingDirectory: kWorkingDirectory.path);
@@ -43,7 +44,18 @@ class CompressionCLController {
       await _shell.runExecutableArguments('python', ['--version']);
       return true;
     } catch (e) {
-      print('_isPythonAvailable() error $e');
+      print('isPythonAvailable() error $e');
+      return false;
+    }
+  }
+
+  static Future<bool> isGhostScriptAvailable() async {
+    final Shell _shell = Shell(workingDirectory: kWorkingDirectory.path);
+    try {
+      await _shell.runExecutableArguments('gs', ['--version']);
+      return true;
+    } catch (e) {
+      print('isGhostScriptAvailable() error $e');
       return false;
     }
   }
@@ -67,6 +79,7 @@ class CompressionCLController {
   ///   * 4: screen
   static Future<CxFile> compress(CxFile file, {int level = 2, String? generatedName}) async {
     if (!Platform.isMacOS) throw NotSupportedPlatform();
+    if (!(await isGhostScriptAvailable())) throw GhostScriptNotInstalled();
     if (!(await isPythonAvailable())) throw PythonNotInstalled();
 
     final Shell _shell = Shell(workingDirectory: dirname(file.path));

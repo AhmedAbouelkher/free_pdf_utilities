@@ -1,8 +1,14 @@
+import 'dart:ui';
+
+import 'package:date_time_format/date_time_format.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:filesize/filesize.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:url_launcher/url_launcher.dart' as urlLauncher;
+import 'package:free_pdf_utilities/Modules/Common/Utils/Notifiers/toasts.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/CompressPDF/pdf_compression_controller.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
@@ -10,9 +16,6 @@ import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
 import 'package:free_pdf_utilities/Screens/root_screen.dart';
-
-//TODO: Show dialog to show compression summary
-//TODO: handle compression exceptions
 
 class CompressPDFScreen extends StatefulWidget {
   const CompressPDFScreen({Key? key}) : super(key: key);
@@ -29,6 +32,9 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
   @override
   void initState() {
     _pdfCompressionController = PDFCompressionController();
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      context.read<PythonCompressionControllerNotifier>().init(_pdfCompressionController);
+    });
     super.initState();
   }
 
@@ -50,6 +56,28 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
 
   void _finishedProcess() {
     if (_isLoading && mounted) setState(() => _isLoading = false);
+  }
+
+  Future<XFile?> _handleFileCompression(PDFCompressionExportOptions options) async {
+    XFile? _file;
+    try {
+      _file = await _pdfCompressionController.generateDoument(options);
+    } on NotSupportedPlatform catch (e) {
+      notifyError(e.message);
+    } on GhostScriptNotInstalled {
+      notifyError("$kAppName needs GhostScript to be installed to enable this feature");
+    } on PythonNotInstalled {
+      notifyError("$kAppName needs Python SDK to be installed to enable this feature");
+    } on PDFRasterNotSupported {
+      notifyError("$kAppName doesn't support this feature on the current platform, yet");
+    } on InvalidFile {
+      notifyError("The selected file is in invalid formate, make sure you selected files with extensions .pdf");
+    } on UnkownPythonCompressionException catch (e) {
+      notifyError("Error while running Python Script ${e.error!.message}");
+    } catch (error) {
+      notifyError(error.toString());
+    }
+    return _file;
   }
 
   @override
@@ -98,7 +126,7 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
                         SizedBox(height: 30),
                         Text(_file.name!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
                         SizedBox(height: 20),
-                        Text(_file.updatedAt?.toIso8601String() ?? "-"),
+                        Text(_file.updatedAt?.format(r'j M Y @ g:i a') ?? "-"),
                         Text(_file.fileSize ?? "-")
                       ],
                     );
@@ -145,11 +173,23 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
           _inProgress();
 
           try {
-            final _file = await _pdfCompressionController.generateDoument(_exportOptions);
+            final _file = await _handleFileCompression(_exportOptions);
+
             _finishedProcess();
+            if (_file == null) return;
+
+            final _export = await showDialog<bool>(
+              context: context,
+              builder: (_) => _CompressionSummeryDialog(
+                summery: _pdfCompressionController.compressionSummery!,
+              ),
+            );
+            if (_export == null) return;
+
             final _filePath = await _pdfCompressionController.exportDocument(_file);
+
             _pdfCompressionController.showInFinder(_filePath, context);
-          } catch (e) {
+          } on UserCancelled {} catch (e) {
             print(e);
           } finally {
             _finishedProcess();
@@ -170,6 +210,7 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
 class _PDFExportDialog extends StatefulWidget {
   final ValueChanged<PDFCompressionExportOptions> onSave;
   final VoidCallback? onOpenSettings;
+
   const _PDFExportDialog({
     Key? key,
     required this.onSave,
@@ -191,6 +232,14 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
   }
 
   @override
+  void initState() {
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      context.read<PythonCompressionControllerNotifier>().checkDependices();
+    });
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     _settingsProvider = context.watch<AppSettingsProvider>();
     final _appSettings = _settingsProvider.appSettings();
@@ -203,16 +252,19 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            RadioListTile<bool>(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                "Default Export Settings. (Recommended)",
-                style: TextStyle(fontSize: 12),
-              ),
-              value: false,
-              groupValue: _isAdvanced,
-              onChanged: (value) {
-                setState(() => _isAdvanced = value!);
+            Consumer<PythonCompressionControllerNotifier>(
+              builder: (context, provider, _) {
+                return RadioListTile<bool>(
+                  onChanged: (value) => setState(() => _isAdvanced = value!),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    "Default Export Settings. (Recommended)",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  value: false,
+                  groupValue: _isAdvanced,
+                  subtitle: _isAdvanced ? null : _dependencesAvailabilitySubtitle(provider),
+                );
               },
             ),
             RadioListTile<bool>(
@@ -258,12 +310,16 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        TextButton(
-          child: const Text(
-            "Compress",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          onPressed: () => Navigator.of(context).pop(_options),
+        Consumer<PythonCompressionControllerNotifier>(
+          builder: (context, provider, _) {
+            return TextButton(
+              child: const Text(
+                "Compress",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: !provider.isAllServicesAvailable ? null : () => Navigator.of(context).pop(_options),
+            );
+          },
         ),
       ],
     );
@@ -319,6 +375,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
   }
 
   Widget _renderPythonOptions() {
+    final _provider = context.watch<PythonCompressionControllerNotifier>();
     return _RadioOption<ExportMethod>(
       title: "Python Compression",
       value: ExportMethod.Python,
@@ -326,6 +383,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
       onChecked: (exportMethod) {
         _changeOptions(PDFCompressionExportOptions(exportMethod: exportMethod));
       },
+      details: _dependencesAvailabilitySubtitle(_provider),
     );
   }
 
@@ -385,6 +443,85 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
       ],
     );
   }
+
+  Widget? _dependencesAvailabilitySubtitle(PythonCompressionControllerNotifier provider) {
+    if (provider.isAllServicesAvailable) return null;
+    final TextStyle _style = TextStyle(
+      fontSize: 11,
+      color: Colors.redAccent,
+    );
+
+    Widget _errorWidget(VoidCallback onTap, String title, String btnTitle, {String? tip}) {
+      return Row(
+        children: [
+          Text(
+            title,
+            style: _style,
+          ),
+          SizedBox(width: 5),
+          Tooltip(
+            message: tip ?? btnTitle,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                child: Text(
+                  btnTitle,
+                  style: _style.copyWith(color: Colors.blue),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!provider.isPythonAvailable)
+                _errorWidget(
+                  () {
+                    urlLauncher.launch(kPythonDownload);
+                  },
+                  "Python is not installed",
+                  "Install",
+                  tip: "Install Python from python.org",
+                ),
+              if (!provider.isGhostScriptAvailable)
+                _errorWidget(
+                  () {
+                    showDialog(
+                        context: context,
+                        builder: (_) {
+                          return _InstallGhostScriptlertDialog();
+                        });
+                  },
+                  "GhostScript is not installed",
+                  "Install",
+                  tip: "Install GhostScript",
+                ),
+            ],
+          ),
+          SizedBox(width: 10),
+          IconButton(
+            constraints: BoxConstraints(),
+            tooltip: "Refresh",
+            splashRadius: 15,
+            iconSize: 15,
+            icon: Icon(Icons.replay),
+            onPressed: () {
+              provider.checkDependices();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DartCompressionDisableAlertDialog extends StatelessWidget {
@@ -406,6 +543,96 @@ class _DartCompressionDisableAlertDialog extends StatelessWidget {
           onPressed: () {
             Navigator.of(context).pop();
             urlLauncher.launch(kAppRepo);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _InstallGhostScriptlertDialog extends StatelessWidget {
+  static const _message = "$kAppName needs to install dependency Ghostscript.\n"
+      "\nOn MacOSX: run (brew install ghostscript)."
+      "\nOn Windows/Linux: install binaries via official website.";
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Install GhostScript for your system"),
+      contentPadding: const EdgeInsetsDirectional.fromSTEB(20.0, 20.0, 10, 0),
+      content: SelectableText(
+        _message,
+      ),
+      actions: [
+        TextButton.icon(
+          icon: Icon(FontAwesomeIcons.github, color: Colors.white),
+          label: const Text(
+            "Go to Official Website",
+            style: TextStyle(fontWeight: FontWeight.normal, color: Colors.white),
+          ),
+          onPressed: () {
+            Navigator.of(context).pop();
+            urlLauncher.launch(kGhostScriptDownload);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _CompressionSummeryDialog extends StatelessWidget {
+  final CompressionSummery summery;
+  const _CompressionSummeryDialog({
+    Key? key,
+    required this.summery,
+  }) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Center(child: const Text("Compression Summery")),
+      contentPadding: const EdgeInsets.all(20.0),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+            children: [
+              Text("Compression by"),
+              Text(
+                "${summery.reduction.round().toString()}%",
+                style: TextStyle(fontSize: 50),
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Original Size: ${filesize(summery.originalSize.toInt())}"),
+                Text("Compressed Size: ${filesize(summery.compressionSize.toInt())}"),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          child: const Text(
+            "Cancel",
+            style: TextStyle(fontWeight: FontWeight.normal),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        Consumer<PythonCompressionControllerNotifier>(
+          builder: (context, provider, _) {
+            return TextButton(
+              child: const Text(
+                "Export",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+            );
           },
         ),
       ],
@@ -444,7 +671,6 @@ class _RadioOption<T> extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5.0),
         child: Row(
-          // mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: details == null ? CrossAxisAlignment.center : CrossAxisAlignment.start,
           children: [
             SizedBox(
@@ -468,7 +694,7 @@ class _RadioOption<T> extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: !enabled ? Colors.white60 : null),
                   ),
                 ),
-                details ?? SizedBox(),
+                details ?? const SizedBox(),
               ],
             ),
           ],
@@ -477,55 +703,3 @@ class _RadioOption<T> extends StatelessWidget {
     );
   }
 }
-
-
-
-              // for (var i = 0; i < 30; i++) ...[
-              //   Center(
-              //       child: SizedBox(
-              //           height: 15.0 * i,
-              //           width: 15.0 * i,
-              //           child: CircularProgressIndicator(
-              //             valueColor: AlwaysStoppedAnimation<Color>(Colors.red.withAlpha(i.isEven ? 150 : 255)),
-              //           ))),
-              //   Center(
-              //       child: SizedBox(
-              //           height: 18.0 * i,
-              //           width: 18.0 * i,
-              //           child: CircularProgressIndicator(
-              //             valueColor: AlwaysStoppedAnimation<Color>(Colors.red.withAlpha(i.isEven ? 250 : 60)),
-              //           ))),
-              //   Center(
-              //     child: CupertinoActivityIndicator(
-              //       animating: true,
-              //       radius: 20,
-              //     ),
-              //   )
-              // ]
-
-        // onPressed: () async {
-        //   final docs = await getApplicationDocumentsDirectory();
-        //   var _testPath = join(docs.path, 'test_compression/');
-        //   final _filePath = join(_testPath, 'origin.pdf');
-        //   final XFile _originSizeFile = XFile(_filePath);
-        //   // try {
-        //   // final _new = await CompressionCLController.compress(XFile(_filePath).toCxFile());
-        //   //   print(_new.path);
-        //   // } catch (e) {
-        //   //   log(e.toString());
-        //   // }
-        //   final _fileSizeBefore = filesize((await _originSizeFile.readAsBytes()).length);
-        //   print(_fileSizeBefore);
-
-        //   final _compressedFile = await _pdfCompressionController.generateDoument(
-        //       PDFCompressionExportOptions(compression: 80), _originSizeFile.toCxFile());
-
-        //   final _fileSizeAfter = filesize((await _compressedFile.readAsBytes()).length);
-        //   print(_fileSizeAfter);
-
-        //   final _saveToPath = join((await CompressionCLController.tempPDFGeneratingDirectory()).path, 'gen.pdf');
-        //   await _compressedFile.saveTo(_saveToPath);
-
-        //   print(_saveToPath);
-        //   print("Done");
-        // },

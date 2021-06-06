@@ -55,6 +55,7 @@ dependencies:
   font_awesome_flutter: ^9.0.0
   image: ^3.0.2
   url_launcher: ^6.0.6
+  oktoast: ^3.0.0
 
 
 dev_dependencies:

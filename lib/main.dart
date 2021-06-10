@@ -18,7 +18,8 @@ import 'Modules/Common/Utils/app_theme.dart';
 import 'Modules/PDFServices/CompressPDF/pdf_compression_controller.dart';
 import 'Modules/Settings/settings_provider.dart';
 
-//TODO: Impelement light mode
+//TODO: Implement light mode
+//TODO: fix grammar errors
 
 void main() async {
   if (Platform.isIOS || Platform.isAndroid) {

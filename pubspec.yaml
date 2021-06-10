@@ -62,6 +62,7 @@ dependencies:
   url_launcher: ^6.0.6
   oktoast: ^3.0.0
   flutter_svg: ^0.22.0
+  http:
 
 
 dev_dependencies:

@@ -25,7 +25,6 @@ import 'package:free_pdf_utilities/Modules/Widgets/platform_items_switcher.dart'
 //TODO: Refactor this screen
 //TODO: [Feature] add drag and drop functionality. (see: desktop_drop_test-master project)
 //TODO: [Feature] add `show in finder` on macOS. (see: desktop_drop_test-master project)
-//TODO: [Crash!] when taping on export the app (DMG release crashes)
 
 class CompressPDFScreen extends StatefulWidget {
   const CompressPDFScreen({Key? key}) : super(key: key);
@@ -45,7 +44,7 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       context.read<PythonCompressionControllerNotifier>()
         ..init(_pdfCompressionController)
-        ..checkDependices();
+        ..checkDependencies();
     });
     super.initState();
   }
@@ -73,7 +72,7 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
   Future<XFile?> _handleFileCompression(PDFCompressionExportOptions options) async {
     XFile? _file;
     try {
-      _file = await _pdfCompressionController.generateDoument(options);
+      _file = await _pdfCompressionController.generateDocument(options);
     } on NotSupportedPlatform catch (e) {
       notifyError(e.message);
     } on GhostScriptNotInstalled {
@@ -84,7 +83,7 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
       notifyError("$kAppName doesn't support this feature on the current platform, yet");
     } on InvalidFile {
       notifyError("The selected file is in invalid formate, make sure you selected files with extensions .pdf");
-    } on UnkownPythonCompressionException catch (e) {
+    } on UnknownPythonCompressionException catch (e) {
       notifyError("Error while running Python Script ${e.error!.message}");
     } catch (error) {
       notifyError(error.toString());
@@ -282,8 +281,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
                   ),
                   value: false,
                   groupValue: _isAdvanced,
-                  // subtitle: _isAdvanced ? null : _dependencesAvailabilitySubtitle(provider),
-                  subtitle: _dependencesAvailabilitySubtitle(provider),
+                  subtitle: _isAdvanced ? null : _dependencesAvailabilitySubtitle(provider),
                 );
               },
             ),
@@ -470,7 +468,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
   }
 
   Widget? _dependencesAvailabilitySubtitle(PythonCompressionControllerNotifier provider) {
-    // if (provider.isAllServicesAvailable) return null;
+    if (provider.isAllServicesAvailable) return null;
     final TextStyle _style = TextStyle(
       fontSize: 11,
       color: Colors.redAccent,
@@ -508,28 +506,28 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // if (!provider.isPythonAvailable)
-              _errorWidget(
-                () {
-                  urlLauncher.launch(kPythonDownload);
-                },
-                "Python is not installed",
-                "Install",
-                tip: "Install Python from python.org",
-              ),
-              // if (!provider.isGhostScriptAvailable)
-              _errorWidget(
-                () {
-                  showDialog(
-                      context: context,
-                      builder: (_) {
-                        return _InstallGhostScriptlertDialog();
-                      });
-                },
-                "GhostScript is not installed",
-                "Install",
-                tip: "Install GhostScript",
-              ),
+              if (!provider.isPythonAvailable)
+                _errorWidget(
+                  () {
+                    urlLauncher.launch(kPythonDownload);
+                  },
+                  "Python is not installed",
+                  "Install",
+                  tip: "Install Python from python.org",
+                ),
+              if (!provider.isGhostScriptAvailable)
+                _errorWidget(
+                  () {
+                    showDialog(
+                        context: context,
+                        builder: (_) {
+                          return _InstallGhostScriptlertDialog();
+                        });
+                  },
+                  "GhostScript is not installed",
+                  "Install",
+                  tip: "Install GhostScript",
+                ),
             ],
           ),
           SizedBox(width: 10),
@@ -540,7 +538,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
             iconSize: 15,
             icon: Icon(Icons.replay),
             onPressed: () {
-              provider.checkDependices();
+              provider.checkDependencies();
             },
           ),
         ],

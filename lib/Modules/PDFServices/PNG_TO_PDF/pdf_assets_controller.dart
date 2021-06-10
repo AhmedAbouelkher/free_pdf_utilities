@@ -15,8 +15,8 @@ export 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller
 export 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
 export 'package:pdf/src/pdf/page_format.dart' show PdfPageFormat;
 
+//TODO: [Bug] the memory usage become very high when picking files and does't decrease after releasing files.
 //TODO: document
-//TODO: [Bug] the memeory usage become very high when picking files and does't decrease after releasing files.
 
 const String kImagesLabel = '@_kImagesLabel';
 
@@ -99,7 +99,7 @@ class PDFAssetsController extends AssetsController {
   }
 
   @override
-  Future<XFile> generateDoument(ExportOptions exportOptions) async {
+  Future<XFile> generateDocument(ExportOptions exportOptions) async {
     final _options = exportOptions as PDFExportOptions;
     final _dataLoader = _PDFAssetsControllerThreading(images: _docImages!, pdfExportOptions: _options);
     //* Generating PDF file on another isolate thread

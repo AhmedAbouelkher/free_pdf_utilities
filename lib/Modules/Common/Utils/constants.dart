@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 
 const kAppName = "Free PDF Utilities";
 const kAppRepo = "https://github.com/AhmedAbouelkher/free_pdf_utilities";
@@ -6,6 +10,16 @@ const EdgeInsetsGeometry kMainPadding = const EdgeInsets.all(20.0);
 const Duration kDuration = const Duration(milliseconds: 200);
 const kPythonDownload = "https://www.python.org/downloads/";
 const kGhostScriptDownload = "https://www.ghostscript.com/download/gsdnld.html";
+
+Future<Directory> appDocumentsDirectory() async {
+  final _path = await getApplicationDocumentsDirectory();
+  return Directory(join(_path.path, kAppName));
+}
+
+class Scripts {
+  static String _scriptsDirPath = "https://raw.githubusercontent.com/AhmedAbouelkher/free_pdf_utilities/master/scripts";
+  static Uri pythonCompression = Uri.parse(join(_scriptsDirPath, "pdf_compressor.py"));
+}
 
 ///Credits:
 /// - SVGs: [unDraw.co](https://undraw.co/)

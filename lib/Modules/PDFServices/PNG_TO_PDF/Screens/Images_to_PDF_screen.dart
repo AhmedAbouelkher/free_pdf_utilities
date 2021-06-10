@@ -1,9 +1,9 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:filesize/filesize.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/Notifiers/toasts.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/Widgets/pdf_image_item.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/custom_app_bar.dart';
@@ -33,9 +33,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   @override
   void initState() {
     _assetsController = PDFAssetsController();
-    WidgetsBinding.instance?.addPostFrameCallback((_) {
-      _appSettingsProvider!.generateTempExportOptions();
-    });
     super.initState();
   }
 
@@ -77,9 +74,9 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             tooltip: "Log total imported images size",
             splashRadius: 15,
             iconSize: 15,
-            icon: Icon(Icons.arrow_downward),
+            icon: Icon(Icons.get_app_rounded),
             onPressed: () {
-              log(filesize(_assetsController.totalSize));
+              notify(filesize(_assetsController.totalSize));
             },
           ),
           _renderExportPDFButton(),
@@ -237,7 +234,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           setState(() => _isLoading = true);
 
           try {
-            final _file = await _assetsController.generateDoument(_exportOptions);
+            final _file = await _assetsController.generateDocument(_exportOptions);
             setState(() => _isLoading = false);
             final _filePath = await _assetsController.exportDocument(_file);
             _assetsController.showInFinder(_filePath, context);

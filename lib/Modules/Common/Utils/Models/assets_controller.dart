@@ -13,8 +13,8 @@ abstract class AssetsController {
     throw UnimplementedError('exportDocument() is not implemented');
   }
 
-  Future<XFile> generateDoument(ExportOptions exportOptions) {
-    throw UnimplementedError('generateDoument() is not implemented');
+  Future<XFile> generateDocument(ExportOptions exportOptions) {
+    throw UnimplementedError('generateDocument() is not implemented');
   }
 
   Future<void> pickFiles() {

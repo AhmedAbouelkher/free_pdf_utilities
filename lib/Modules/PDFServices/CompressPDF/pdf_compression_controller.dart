@@ -91,7 +91,7 @@ class PDFCompressionController extends AssetsController {
   }
 
   @override
-  Future<XFile> generateDoument(ExportOptions exportOptions, {CxFile? origin}) async {
+  Future<XFile> generateDocument(ExportOptions exportOptions, {CxFile? origin}) async {
     if (_pdfFile == null && origin == null) throw InvalidFile();
 
     final _options = exportOptions as PDFCompressionExportOptions;
@@ -114,7 +114,7 @@ class PDFCompressionController extends AssetsController {
             CompressionSummery(originalSize: _originalFileSize, compressionSize: _compressionFileSize);
         return Future.value(file.internal);
       } on ShellException catch (e) {
-        throw UnkownPythonCompressionException(e);
+        throw UnknownPythonCompressionException(e);
       } catch (e) {
         rethrow;
       }
@@ -134,11 +134,11 @@ class PDFCompressionController extends AssetsController {
       _compressionSummery = CompressionSummery(originalSize: _originalFileSize, compressionSize: _compressionFileSize);
       return Future.value(file);
     } catch (e) {
-      throw UnkownDartCompressionException(e);
+      throw UnknownDartCompressionException(e);
     }
   }
 
-  ///Checks the reseration feature availability on the current platform.
+  ///Checks the resteration feature availability on the current platform.
   Future<bool> isRasterFeatureAvailable() async {
     var printingInfo = await Printing.info();
     return printingInfo.canRaster;
@@ -188,6 +188,8 @@ class PDFCompressionController extends AssetsController {
     return Future.value(_unCompressedImages);
   }
 }
+
+//! Disabled
 
 Future<List<Uint8List>> _compressImages(List<Uint8List> images, PDFCompressionExportOptions exportOptions) async {
   List<Uint8List> _compressedImages = [];
@@ -270,7 +272,7 @@ class PythonCompressionControllerNotifier extends ChangeNotifier {
   bool get isAllServicesAvailable => isPythonAvailable && isGhostScriptAvailable;
 
   ///Check if installed or not.
-  void checkDependices() async {
+  void checkDependencies() async {
     _isPythonAvailable = await _compressionController.isPythonAvailable();
     _isGhostScriptAvailable = await _compressionController.isGhostScriptAvailable();
     notifyListeners();

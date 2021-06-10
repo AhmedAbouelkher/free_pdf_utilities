@@ -9,6 +9,8 @@ export 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
 
 export 'package:provider/provider.dart';
 
+//TODO: document
+
 class AppSettingsProvider extends ChangeNotifier {
   AppSettings? _appSettings;
 
@@ -38,7 +40,7 @@ class AppSettingsProvider extends ChangeNotifier {
   }
 
   Future<void> resetExportOptions() {
-    final _newSettings = SettingService.read();
+    final _newSettings = const AppSettings();
     _appSettings = _newSettings;
     notifyListeners();
     return SettingService.save(_newSettings);
@@ -53,7 +55,6 @@ class AppSettingsProvider extends ChangeNotifier {
       await TempExportOptionsSerivce.initBox();
       log("Temp file export opetions box was created");
     }
-    print("object");
   }
 
   Future<void> updateTempExportOptions<T extends ExportOptions>(T options) async {
@@ -62,6 +63,10 @@ class AppSettingsProvider extends ChangeNotifier {
 
   T? readTempExportOptions<T extends ExportOptions>() {
     return TempExportOptionsSerivce.read() as T?;
+  }
+
+  Future<void> clearTempExportOptions() async {
+    return TempExportOptionsSerivce.clear();
   }
 
   Future<void> desposeTempExportOptions() async {

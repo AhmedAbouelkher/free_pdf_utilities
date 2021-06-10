@@ -1,18 +1,25 @@
-import 'package:draggable_container/draggable_container.dart';
+import 'dart:developer';
+import 'dart:io';
+
+import 'package:filesize/filesize.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/Widgets/pdf_image_item.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/custom_app_bar.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/hint_screen.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/platform_items_switcher.dart';
 import 'package:provider/provider.dart';
-import 'package:responsive_grid/responsive_grid.dart';
 
-import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
+import 'package:free_pdf_utilities/Modules/Settings/Screens/Settings/settings_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
-import 'package:free_pdf_utilities/Screens/root_screen.dart';
 
 import '../pdf_assets_controller.dart';
 
 //TODO: Impelement images multiselect
+//TODO: Refactor this screen
+
 class PNGtoPDFScreen extends StatefulWidget {
   @override
   _PNGtoPDFScreenState createState() => _PNGtoPDFScreenState();
@@ -48,6 +55,8 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final _size = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: CAppBar(
         title: "Images to PDF",
@@ -63,6 +72,16 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           ),
         ],
         actions: [
+          //TODO: Remove in release
+          IconButton(
+            tooltip: "Log total imported images size",
+            splashRadius: 15,
+            iconSize: 15,
+            icon: Icon(Icons.arrow_downward),
+            onPressed: () {
+              log(filesize(_assetsController.totalSize));
+            },
+          ),
           _renderExportPDFButton(),
         ],
       ),
@@ -83,33 +102,38 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                 stream: _assetsController.imageStream,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return Center(child: Text("Start adding new images to convert..."));
+                    return ToolHintScreen(
+                      assetPath: Assets.addFilesSVG,
+                      title: "Start adding new images from your system files...",
+                    );
                   }
                   final _images = snapshot.data!;
 
                   return Scrollbar(
-                    // thickness: 50,
-                    // radius: Radius.circular(50),
-                    isAlwaysShown: true,
-                    child: ResponsiveGridList(
-                      desiredItemWidth: 140,
-                      minSpacing: 15,
-                      children: List.generate(
-                        _images.length,
-                        (index) {
-                          final _image = _images[index];
-                          return PDFImageItem(
-                            pdfFile: _image,
-                            onRemove: () async {
-                              final _result = await showDialog<bool>(
-                                context: context,
-                                builder: (_) => _renderPageRemovalAlertDialog(_image.name ?? "-"),
-                              );
-                              if (_result ?? false) _assetsController.removeAt(index);
-                            },
-                          );
-                        },
+                    isAlwaysShown: !Platform.isMacOS,
+                    child: GridView.builder(
+                      padding: const EdgeInsetsDirectional.fromSTEB(10, 10, 20, 15.0),
+                      itemCount: _images.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        //TODO: Create and document better `crossAxisCount` formula.
+                        crossAxisCount: _size.width ~/ 150,
+                        childAspectRatio: (140 / 210),
+                        crossAxisSpacing: 10.0,
+                        mainAxisSpacing: 10.0,
                       ),
+                      itemBuilder: (context, index) {
+                        final _image = _images[index];
+                        return PDFImageItem(
+                          pdfFile: _image,
+                          onRemove: () async {
+                            final _result = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => _renderPageRemovalAlertDialog(_image.name ?? "-"),
+                            );
+                            if (_result ?? false) _assetsController.removeAt(index);
+                          },
+                        );
+                      },
                     ),
                   );
                 },
@@ -131,18 +155,22 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
       content: Text("You are going to remove '$name' permanently..."),
       buttonPadding: const EdgeInsets.all(15),
       actions: <Widget>[
-        // usually buttons at the bottom of the dialog
-        TextButton(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        TextButton(
-          child: const Text("Remove", style: TextStyle(color: Colors.red)),
-          onPressed: () {
-            Navigator.of(context).pop(true);
-          },
+        PlatformItemsSwitcher(
+          children: [
+            TextButton(
+              child: const Text("Remove", style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+            PlatformItemsSwitcher.actionsSpace(),
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -154,19 +182,23 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
       content: Text('This will remove all your pregress so far.'),
       buttonPadding: const EdgeInsets.all(15),
       actions: <Widget>[
-        // usually buttons at the bottom of the dialog
-        TextButton(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        TextButton(
-          child: const Text("Confirm", style: TextStyle(color: Colors.red)),
-          onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
-          },
+        PlatformItemsSwitcher(
+          children: [
+            TextButton(
+              child: const Text("Confirm", style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            ),
+            PlatformItemsSwitcher.actionsSpace(),
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -224,27 +256,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
         );
       },
     );
-  }
-}
-
-class MyItem extends DraggableItem {
-  final Color? color;
-  final int index;
-  final CxFile pdfFile;
-  bool deletable;
-  bool fixed;
-
-  MyItem({
-    this.color = Colors.black,
-    required this.index,
-    required this.pdfFile,
-    required this.deletable,
-    required this.fixed,
-  });
-
-  @override
-  String toString() {
-    return 'MyItem(index:$index)';
   }
 }
 
@@ -339,19 +350,24 @@ class _PDFExportDialog extends StatelessWidget {
       ),
       buttonPadding: const EdgeInsets.all(15),
       actions: [
-        TextButton(
-          child: const Text(
-            "Cancel",
-            style: TextStyle(fontWeight: FontWeight.normal),
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        TextButton(
-          child: const Text(
-            "Export",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          onPressed: () => Navigator.of(context).pop(_options),
+        PlatformItemsSwitcher(
+          children: [
+            TextButton(
+              child: const Text(
+                "Export",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: () => Navigator.of(context).pop(_options),
+            ),
+            PlatformItemsSwitcher.actionsSpace(),
+            TextButton(
+              child: const Text(
+                "Cancel",
+                style: TextStyle(fontWeight: FontWeight.normal),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
         ),
       ],
     );
@@ -406,3 +422,24 @@ class _PDFExportDialog extends StatelessWidget {
                   //     print(items);
                   //   },
                   // );
+
+//                   class MyItem extends DraggableItem {
+//   final Color? color;
+//   final int index;
+//   final CxFile pdfFile;
+//   bool deletable;
+//   bool fixed;
+
+//   MyItem({
+//     this.color = Colors.black,
+//     required this.index,
+//     required this.pdfFile,
+//     required this.deletable,
+//     required this.fixed,
+//   });
+
+//   @override
+//   String toString() {
+//     return 'MyItem(index:$index)';
+//   }
+// }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:responsive_grid/responsive_grid.dart';
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/CompressPDF/Screens/compress_pdf_screen.dart';
-import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/Screens/Images_to_PDF_screen.dart';
-import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
-import 'package:responsive_grid/responsive_grid.dart';
+import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/Screens/images_to_PDF_screen.dart';
+import 'package:free_pdf_utilities/Modules/Settings/Screens/Settings/settings_screen.dart';
 
 class RootScreen extends StatefulWidget {
   const RootScreen({Key? key}) : super(key: key);
@@ -28,25 +29,15 @@ class _RootScreenState extends State<RootScreen> {
           minSpacing: 10,
           squareCells: true,
           children: [
-            InkWell(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => PNGtoPDFScreen()));
-              },
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(8.0)),
-                child: Center(child: Text("IMAGES TO PDF")),
-              ),
+            _ToolItem(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PNGtoPDFScreen())),
+              icon: Icon(FontAwesomeIcons.fileImage),
+              title: "Images to PDF",
             ),
-            InkWell(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => CompressPDFScreen()));
-              },
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(8.0)),
-                child: Center(child: Text("Compress PDF")),
-              ),
+            _ToolItem(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CompressPDFScreen())),
+              icon: Icon(FontAwesomeIcons.fileArchive),
+              title: "Compress PDF",
             ),
           ],
         ),
@@ -66,77 +57,69 @@ class _RootScreenState extends State<RootScreen> {
         ),
       ),
       actions: [
-        IconButton(
-          splashRadius: 15,
-          onPressed: _navigateToSettings,
-          icon: Icon(Icons.settings),
+        Padding(
+          padding: const EdgeInsetsDirectional.only(end: 10),
+          child: IconButton(
+            splashRadius: 15,
+            onPressed: _navigateToSettings,
+            icon: Icon(Icons.settings),
+          ),
         ),
       ],
     );
   }
 }
 
-class CAppBar extends StatelessWidget with PreferredSizeWidget {
-  final List<Widget>? actions;
-  final List<Widget>? leading;
-  final String? title;
-  final bool? hideAppName;
-  const CAppBar({
+class _ToolItem extends StatelessWidget {
+  final String title;
+  final VoidCallback? onTap;
+  final Widget? icon;
+  final TextStyle? titleStyle;
+
+  const _ToolItem({
     Key? key,
-    this.actions,
-    this.leading,
-    this.title,
-    this.hideAppName = false,
+    required this.title,
+    this.onTap,
+    this.icon,
+    this.titleStyle,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20.0),
-      child: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
-              child: AppBar(
-                elevation: 0,
-                backgroundColor: Colors.transparent,
-                centerTitle: true,
-                title: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (!hideAppName!)
-                      Text(
-                        kAppName,
-                        style: TextStyle(fontSize: 10),
-                      ),
-                    Text(
-                      title ?? "",
-                      style: TextStyle(fontSize: 15),
-                    ),
-                  ],
+    final _kBoxDecoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(8.0),
+      gradient: LinearGradient(
+        colors: [Colors.cyan, Colors.cyan[400]!],
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+      ),
+    );
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 100,
+        decoration: _kBoxDecoration,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null)
+                IconTheme.merge(
+                  data: IconThemeData(
+                    size: 40,
+                  ),
+                  child: icon!,
                 ),
-                actions: actions,
-                leading: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: leading ??
-                      [
-                        IconButton(
-                          iconSize: 15,
-                          icon: BackButtonIcon(),
-                          onPressed: () => Navigator.maybePop(context),
-                        )
-                      ],
-                ),
+              SizedBox(height: 15),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle().merge(titleStyle),
               ),
-            ),
+            ],
           ),
-          Divider(height: 1),
-        ],
+        ),
       ),
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 15.0);
 }

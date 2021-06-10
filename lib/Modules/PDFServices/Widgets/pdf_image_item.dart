@@ -49,8 +49,8 @@ class _PDFImageItemState extends State<PDFImageItem> {
           setState(() => _isHoverActive = value);
         },
         child: Container(
-          height: 210,
-          width: 140,
+          // height: 210,
+          // width: 140,
           decoration: BoxDecoration(
             // color: _isHoverActive ? Colors.black : Colors.white,
             color: Colors.white,

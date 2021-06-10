@@ -15,9 +15,10 @@ export 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller
 export 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
 export 'package:pdf/src/pdf/page_format.dart' show PdfPageFormat;
 
+//TODO: document
+//TODO: [Bug] the memeory usage become very high when picking files and does't decrease after releasing files.
+
 const String kImagesLabel = '@_kImagesLabel';
-const String kLastSavedLocationKey = '@_kLastSavedLocationKey';
-const String kLastPickedLocationKey = '@_kLastPickedLocationKey';
 
 /// JPEG (or JPG) - Joint Photographic Experts Group.
 ///
@@ -64,16 +65,15 @@ Future<Uint8List> _generatePDFOnAnotherThread(_PDFAssetsControllerThreading data
 class PDFAssetsController extends AssetsController {
   late List<CxFile>? _docImages;
   late StreamController<List<CxFile>> _streamController;
-  late String _savedDocumentName;
+  String? _savedDocumentName;
 
-  String get documentName => _savedDocumentName;
+  String get documentName => _savedDocumentName!;
   Stream<List<CxFile>> get imageStream => _streamController.stream.asBroadcastStream();
 
   bool get isEmptyDocument => docImages!.isEmpty;
   bool get isNotEmptyDocument => !isEmptyDocument;
 
   @protected
-  @override
   List<CxFile>? get docImages => _docImages;
 
   PDFAssetsController() {
@@ -81,6 +81,11 @@ class PDFAssetsController extends AssetsController {
     _docImages = [];
     _streamController.sink.add(<CxFile>[]);
     _generateDocumentExportName();
+  }
+
+  void _generateDocumentExportName() {
+    final String _time = DateTime.now().format(DateTimeFormats.europeanAbbr);
+    _savedDocumentName = 'Free PDF Utilities-$_time.pdf';
   }
 
   @override
@@ -106,16 +111,22 @@ class PDFAssetsController extends AssetsController {
     return Future.value(file);
   }
 
+  int totalSize = 0;
+
   @override
   Future<void> pickFiles() async {
     final List<XFile> _images = await _pickImagesFromSystem();
     if (_images.isEmpty) return;
 
     _docImages!.addAll(_images.map((e) => e.toCxFileSync()));
+
+    _docImages!.forEach((file) async {
+      totalSize += await file.internal.sizeInBytes();
+    });
+
     _streamController.sink.add(_docImages!);
   }
 
-  @override
   CxFile removeAt(int index) {
     final _file = _docImages!.removeAt(index);
     _streamController.sink.add(_docImages!);
@@ -131,13 +142,11 @@ class PDFAssetsController extends AssetsController {
     return _files;
   }
 
-  void _generateDocumentExportName() {
-    final String _time = DateTime.now().format(DateTimeFormats.europeanAbbr);
-    _savedDocumentName = 'Free PDF Utilities-$_time.pdf';
-  }
-
   @override
-  Future<void> dispose() {
-    return _streamController.close();
+  Future<void> dispose() async {
+    _docImages?.clear();
+    _docImages = null;
+    _savedDocumentName = null;
+    await _streamController.close();
   }
 }

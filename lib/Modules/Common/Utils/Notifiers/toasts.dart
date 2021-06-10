@@ -4,6 +4,7 @@ import 'package:oktoast/oktoast.dart';
 void notify(String message, {bool error = false}) {
   showToast(
     message,
+    duration: error ? Duration(seconds: 5) : Duration(seconds: 2),
     dismissOtherToast: true,
     backgroundColor: error ? Colors.redAccent : Colors.white,
     radius: 5,

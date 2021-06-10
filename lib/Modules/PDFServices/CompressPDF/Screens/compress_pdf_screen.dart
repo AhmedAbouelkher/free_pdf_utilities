@@ -5,17 +5,27 @@ import 'package:file_selector/file_selector.dart';
 import 'package:filesize/filesize.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart' as urlLauncher;
+
 import 'package:free_pdf_utilities/Modules/Common/Utils/Notifiers/toasts.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/CompressPDF/pdf_compression_controller.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
-import 'package:free_pdf_utilities/Modules/Settings/Screens/settings_screen.dart';
+import 'package:free_pdf_utilities/Modules/Settings/Screens/Settings/settings_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/clipboard_icon_button.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/custom_app_bar.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
-import 'package:free_pdf_utilities/Screens/root_screen.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/hint_screen.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/platform_items_switcher.dart';
+
+//TODO: Refactor this screen
+//TODO: [Feature] add drag and drop functionality. (see: desktop_drop_test-master project)
+//TODO: [Feature] add `show in finder` on macOS. (see: desktop_drop_test-master project)
+//TODO: [Crash!] when taping on export the app (DMG release crashes)
 
 class CompressPDFScreen extends StatefulWidget {
   const CompressPDFScreen({Key? key}) : super(key: key);
@@ -33,7 +43,9 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
   void initState() {
     _pdfCompressionController = PDFCompressionController();
     WidgetsBinding.instance?.addPostFrameCallback((_) {
-      context.read<PythonCompressionControllerNotifier>().init(_pdfCompressionController);
+      context.read<PythonCompressionControllerNotifier>()
+        ..init(_pdfCompressionController)
+        ..checkDependices();
     });
     super.initState();
   }
@@ -115,14 +127,21 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
                   stream: _pdfCompressionController.pdfFileStream,
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return Text("Pick you PDF file...");
+                      return ToolHintScreen(
+                        assetPath: Assets.attachedFileSVG,
+                        title: "Choose a PDF file from your file system...",
+                      );
                     }
                     final _file = snapshot.data!;
 
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(CupertinoIcons.doc_richtext, size: _size.height / 2),
+                        // Icon(CupertinoIcons.doc_richtext, size: _size.height / 2),
+                        SvgPicture.asset(
+                          Assets.myFilesSVG,
+                          height: _size.height / 2.5,
+                        ),
                         SizedBox(height: 30),
                         Text(_file.name!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
                         SizedBox(height: 20),
@@ -233,9 +252,9 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
 
   @override
   void initState() {
-    WidgetsBinding.instance?.addPostFrameCallback((_) {
-      context.read<PythonCompressionControllerNotifier>().checkDependices();
-    });
+    // WidgetsBinding.instance?.addPostFrameCallback((_) {
+    //   context.read<PythonCompressionControllerNotifier>().checkDependices();
+    // });
     super.initState();
   }
 
@@ -263,7 +282,8 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
                   ),
                   value: false,
                   groupValue: _isAdvanced,
-                  subtitle: _isAdvanced ? null : _dependencesAvailabilitySubtitle(provider),
+                  // subtitle: _isAdvanced ? null : _dependencesAvailabilitySubtitle(provider),
+                  subtitle: _dependencesAvailabilitySubtitle(provider),
                 );
               },
             ),
@@ -303,24 +323,29 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
       ),
       buttonPadding: const EdgeInsets.all(15),
       actions: [
-        TextButton(
-          child: const Text(
-            "Cancel",
-            style: TextStyle(fontWeight: FontWeight.normal),
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        Consumer<PythonCompressionControllerNotifier>(
-          builder: (context, provider, _) {
-            return TextButton(
+        PlatformItemsSwitcher(
+          children: [
+            Consumer<PythonCompressionControllerNotifier>(
+              builder: (context, provider, _) {
+                return TextButton(
+                  child: const Text(
+                    "Compress",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: !provider.isAllServicesAvailable ? null : () => Navigator.of(context).pop(_options),
+                );
+              },
+            ),
+            PlatformItemsSwitcher.actionsSpace(),
+            TextButton(
               child: const Text(
-                "Compress",
-                style: TextStyle(fontWeight: FontWeight.bold),
+                "Cancel",
+                // style: TextStyle(fontWeight: FontWeight.normal),
               ),
-              onPressed: !provider.isAllServicesAvailable ? null : () => Navigator.of(context).pop(_options),
-            );
-          },
-        ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        )
       ],
     );
   }
@@ -445,7 +470,7 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
   }
 
   Widget? _dependencesAvailabilitySubtitle(PythonCompressionControllerNotifier provider) {
-    if (provider.isAllServicesAvailable) return null;
+    // if (provider.isAllServicesAvailable) return null;
     final TextStyle _style = TextStyle(
       fontSize: 11,
       color: Colors.redAccent,
@@ -483,28 +508,28 @@ class __PDFExportDialogState extends State<_PDFExportDialog> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!provider.isPythonAvailable)
-                _errorWidget(
-                  () {
-                    urlLauncher.launch(kPythonDownload);
-                  },
-                  "Python is not installed",
-                  "Install",
-                  tip: "Install Python from python.org",
-                ),
-              if (!provider.isGhostScriptAvailable)
-                _errorWidget(
-                  () {
-                    showDialog(
-                        context: context,
-                        builder: (_) {
-                          return _InstallGhostScriptlertDialog();
-                        });
-                  },
-                  "GhostScript is not installed",
-                  "Install",
-                  tip: "Install GhostScript",
-                ),
+              // if (!provider.isPythonAvailable)
+              _errorWidget(
+                () {
+                  urlLauncher.launch(kPythonDownload);
+                },
+                "Python is not installed",
+                "Install",
+                tip: "Install Python from python.org",
+              ),
+              // if (!provider.isGhostScriptAvailable)
+              _errorWidget(
+                () {
+                  showDialog(
+                      context: context,
+                      builder: (_) {
+                        return _InstallGhostScriptlertDialog();
+                      });
+                },
+                "GhostScript is not installed",
+                "Install",
+                tip: "Install GhostScript",
+              ),
             ],
           ),
           SizedBox(width: 10),
@@ -531,8 +556,10 @@ class _DartCompressionDisableAlertDialog extends StatelessWidget {
       title: Text("Pure Dart Compression is disabled"),
       contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0.0),
       content: Text(
-          '''Due to the low effeicency of the Dart compression algorithm the opetion to enable it is disabled right now.\n\n'''
-          '''If you beleive you can help us to create a powerfull algorithm, create a new PR.'''),
+        '''Because the Dart compression algorithm effeicency is too low, using it is disabled right now.'''
+        '''\n'''
+        '''If you beleive you can help us to create a powerful algorithm, create a new PR.''',
+      ),
       actions: [
         TextButton.icon(
           icon: Icon(FontAwesomeIcons.github, color: Colors.white),
@@ -551,17 +578,36 @@ class _DartCompressionDisableAlertDialog extends StatelessWidget {
 }
 
 class _InstallGhostScriptlertDialog extends StatelessWidget {
-  static const _message = "$kAppName needs to install dependency Ghostscript.\n"
-      "\nOn MacOSX: run (brew install ghostscript)."
-      "\nOn Windows/Linux: install binaries via official website.";
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text("Install GhostScript for your system"),
-      contentPadding: const EdgeInsetsDirectional.fromSTEB(20.0, 20.0, 10, 0),
-      content: SelectableText(
-        _message,
+      // contentPadding: const EdgeInsetsDirectional.fromSTEB(20.0, 20.0, 10, 0),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SelectableText("$kAppName needs to install dependency Ghostscript"),
+          SizedBox(height: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // SelectableText("On MacOSX: brew install ghostscript."),
+              SelectableText.rich(TextSpan(text: "On MacOSX: ", children: [
+                TextSpan(text: "run"),
+                TextSpan(
+                  text: " brew install ghostscript ",
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
+                TextSpan(text: "in terminal"),
+              ])),
+              ClipboardIconButton(
+                text: "brew install ghostscript",
+              )
+            ],
+          ),
+          SelectableText("On Windows/Linux: install binaries via official website."),
+        ],
       ),
       actions: [
         TextButton.icon(
@@ -617,23 +663,28 @@ class _CompressionSummeryDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        TextButton(
-          child: const Text(
-            "Cancel",
-            style: TextStyle(fontWeight: FontWeight.normal),
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        Consumer<PythonCompressionControllerNotifier>(
-          builder: (context, provider, _) {
-            return TextButton(
+        PlatformItemsSwitcher(
+          children: [
+            Consumer<PythonCompressionControllerNotifier>(
+              builder: (context, provider, _) {
+                return TextButton(
+                  child: const Text(
+                    "Export",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(true),
+                );
+              },
+            ),
+            PlatformItemsSwitcher.actionsSpace(),
+            TextButton(
               child: const Text(
-                "Export",
-                style: TextStyle(fontWeight: FontWeight.bold),
+                "Cancel",
+                style: TextStyle(fontWeight: FontWeight.normal),
               ),
-              onPressed: () => Navigator.of(context).pop(true),
-            );
-          },
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
         ),
       ],
     );

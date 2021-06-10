@@ -14,8 +14,8 @@ import 'exception.dart';
 Directory kWorkingDirectory = Directory.current;
 Directory _kPythonCompressionScriptDirectory = Directory(join(
   kWorkingDirectory.path,
-  'lib/Modules/Common/Utils',
-  "Scripts/pdf_compressor.py",
+  "scripts",
+  "pdf_compressor.py",
 ));
 
 //TODO: [Platform Fix] Make available on Linux and Windows
@@ -39,7 +39,10 @@ class CommandLineController {
 class PythonCompressionCLController {
   ///Checks if Python SDK is installed on the current system
   static Future<bool> isPythonAvailable() async {
-    final Shell _shell = Shell(workingDirectory: kWorkingDirectory.path);
+    final Shell _shell = Shell(
+      workingDirectory: kWorkingDirectory.path,
+      commandVerbose: false,
+    );
     try {
       await _shell.runExecutableArguments('python', ['--version']);
       return true;
@@ -50,7 +53,10 @@ class PythonCompressionCLController {
   }
 
   static Future<bool> isGhostScriptAvailable() async {
-    final Shell _shell = Shell(workingDirectory: kWorkingDirectory.path);
+    final Shell _shell = Shell(
+      workingDirectory: kWorkingDirectory.path,
+      commandVerbose: false,
+    );
     try {
       await _shell.runExecutableArguments('gs', ['--version']);
       return true;
@@ -89,7 +95,7 @@ class PythonCompressionCLController {
     final _generatedName = join(_tempStorage.path, '.gen_trash_$_fileName');
     try {
       await _shell
-          .run("python ${_kPythonCompressionScriptDirectory.path} -c $level -o '$_generatedName.pdf' $_fileName.pdf");
+          .run("python ${_kPythonCompressionScriptDirectory.path} -c $level -o '$_generatedName.pdf' '$_fileName.pdf'");
       final XFile _generatedCompressedFile = XFile(
         join(dirname(file.path), '$_generatedName.pdf'),
         name: generatedName,

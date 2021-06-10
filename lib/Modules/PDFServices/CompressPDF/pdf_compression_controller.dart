@@ -13,7 +13,9 @@ import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_con
 
 export 'package:free_pdf_utilities/Modules/Common/Utils/exception.dart';
 
-//TODO: Create more effient image compression alogrithm (Dart)
+//TODO: [Feature] Create more effient image compression alogrithm (Dart).
+//TODO: Add Sharing capability.
+//TODO: document
 
 const String kPDFLabel = '@_kPDFLabel';
 
@@ -169,6 +171,8 @@ class PDFCompressionController extends AssetsController {
 
   @override
   Future<void> dispose() {
+    _pdfFile = null;
+    _documentName = null;
     return _streamController.close();
   }
 
@@ -244,8 +248,8 @@ class PythonCompressionControllerNotifier extends ChangeNotifier {
     _compressionController = controller;
   }
 
-  bool _isPythonAvailable = false;
-  bool _isGhostScriptAvailable = false;
+  bool _isPythonAvailable = true;
+  bool _isGhostScriptAvailable = true;
 
   ///`Getter` Checks for `Python` availability.
   ///

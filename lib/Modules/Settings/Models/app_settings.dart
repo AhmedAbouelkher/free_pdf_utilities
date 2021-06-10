@@ -7,6 +7,8 @@ import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_con
 
 part 'app_settings.g.dart';
 
+//TODO: document
+
 @HiveType(typeId: 0)
 class AppSettings {
   @HiveField(0)
@@ -154,7 +156,8 @@ class SettingsThemeMode {
     } else if (themeMode == SettingsThemeMode.dark) {
       return ThemeMode.dark;
     } else {
-      return ThemeMode.system;
+      //TODO: [theme] Change to `ThemeMode.system` when finishing the ligth mode theme.
+      return ThemeMode.dark;
     }
   }
 
@@ -210,7 +213,6 @@ PdfPageFormat? getPdfPageFormat(PdfPageFormatEnum? pageFormatEnum) {
   switch (pageFormatEnum) {
     case PdfPageFormatEnum.A3:
       return PdfPageFormat.a3;
-
     case PdfPageFormatEnum.A4:
       return PdfPageFormat.a4;
     case PdfPageFormatEnum.A5:

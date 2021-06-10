@@ -7,35 +7,28 @@ import 'package:path/path.dart' as path;
 
 import '../command_line_tools.dart';
 
+///An interface to use when creating new controller.
 abstract class AssetsController {
-  List<CxFile>? get docImages {
-    throw UnimplementedError();
-  }
-
   Future<String> exportDocument(XFile file) {
-    throw UnimplementedError();
+    throw UnimplementedError('exportDocument() is not implemented');
   }
 
   Future<XFile> generateDoument(ExportOptions exportOptions) {
-    throw UnimplementedError();
-  }
-
-  CxFile removeAt(int index) {
-    throw UnimplementedError();
+    throw UnimplementedError('generateDoument() is not implemented');
   }
 
   Future<void> pickFiles() {
-    throw UnimplementedError();
+    throw UnimplementedError('pickFiles() is not implemented');
   }
 
   Future<void> dispose() {
-    throw UnimplementedError();
+    throw UnimplementedError('dispose() is not implemented');
   }
 
+  ///Open the current file at `filePath`.
   void showInFinder(String filePath, BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        // backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         content: Row(
           children: [
             Text("PDF Saved", style: TextStyle(fontSize: 12)),
@@ -59,35 +52,55 @@ abstract class AssetsController {
   }
 }
 
+///ExportOptions generic class.
 abstract class ExportOptions {
   const ExportOptions();
 }
 
+///Wraps `XFile` and adds new features to it.
 class CxFile {
+  ///The parent `XFile`.
   final XFile internal;
-  final String? name;
-  final Map<String, dynamic>? metaData;
-  final ExportOptions? exportOptions;
 
+  ///Get File name
+  final String? name;
+
+  ///Get File meta data (if provided)
+  final Map<String, dynamic>? metaData;
+
+  ///Get the last-modified time for `internal` file
+  ///
+  ///Use `toCxFile()` on `XFile` to get the createdAt, otherwise use `await internal.lastModified()`.
   final DateTime? updatedAt;
+
+  ///Get file size.
+  ///
+  ///Use `toCxFile()` on `XFile` to get the size, otherwise use `(await internal.readAsBytes()).length`.
   final int? size;
+
+  ///Get file path on the current device.
   String get path => internal.path;
 
+  ///Get file size as a human readable string representing the current `internal` file size.
   String? get fileSize => size != null ? filesize(size) : null;
 
   const CxFile({
     required this.internal,
     this.name,
     this.metaData,
-    this.exportOptions,
     this.updatedAt,
     this.size,
   });
 }
 
 extension XfileToFile on XFile {
+  ///Convert `XFile` to `io.File`
   File toFile() => File(this.path);
 
+  ///Convert `XFile` to `CxFile`.
+  ///
+  ///- Only copies `name`
+  ///- You can provide `metaData` to `CxFile`
   CxFile toCxFileSync([String? name, Map<String, dynamic>? metaData]) {
     String? _name = name ?? fileName(this.path);
 
@@ -98,6 +111,10 @@ extension XfileToFile on XFile {
     );
   }
 
+  ///Convert `XFile` to `CxFile`.
+  ///
+  ///- Copies `name`, `readAsBytes` and `lastModified`
+  ///- You can provide `metaData` to `CxFile`
   Future<CxFile> toCxFile([String? name, Map<String, dynamic>? metaData]) async {
     String? _name = name ?? fileName(this.path);
 
@@ -110,6 +127,7 @@ extension XfileToFile on XFile {
     );
   }
 
+  ///Get the file size in Bytes (8 bit)
   Future<int> sizeInBytes() async {
     return (await readAsBytes()).length;
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/app_theme.dart';
 
 class DropDownListTile<T> extends StatefulWidget {
   final String title;
@@ -50,15 +51,27 @@ class _DropDownListTileState<T> extends State<DropDownListTile<T>> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(widget.title,
-            style: TextStyle(
-              fontSize: 13,
-              color: widget.enabled ? null : Colors.white60,
-            ).merge(widget.titleStyle)),
+        Text(
+          widget.title,
+          style: TextStyle(
+            fontSize: 13,
+            color: widget.enabled ? null : Colors.white60,
+          ).merge(widget.titleStyle),
+        ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
           decoration: BoxDecoration(
-            color: Colors.black26,
+            color: !widget.enabled
+                ? themed(
+                    context,
+                    dark: null,
+                    light: Colors.grey[400],
+                  )
+                : themed(
+                    context,
+                    dark: Colors.black54,
+                    light: Colors.grey,
+                  ),
             borderRadius: BorderRadius.circular(5),
           ),
           child: IgnorePointer(
@@ -68,6 +81,8 @@ class _DropDownListTileState<T> extends State<DropDownListTile<T>> {
               isDense: true,
               value: _value,
               iconSize: 18,
+              iconEnabledColor: themed(context, dark: null, light: Colors.white),
+              dropdownColor: themed(context, dark: null, light: Colors.grey),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,

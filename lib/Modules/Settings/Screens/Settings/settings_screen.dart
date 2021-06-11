@@ -83,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: Color(0x0AFFFFFF),
                 child: ListView.builder(
                   itemCount: _taps.length,
-                  physics: NeverScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsetsDirectional.only(start: 20.0, top: 10.0),
                   itemBuilder: (context, index) {
                     final String _tap = _taps[index];
@@ -136,10 +136,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Text("UNDER CONSTRUCTION"),
                             SizedBox(height: 50),
                             TextButton.icon(
-                              icon: Icon(FontAwesomeIcons.github, color: Colors.white),
+                              icon: Icon(
+                                FontAwesomeIcons.github,
+                                // color: Colors.white,
+                              ),
                               label: const Text(
                                 "Contribute on Github",
-                                style: TextStyle(fontWeight: FontWeight.normal, color: Colors.white),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.normal,
+                                  // color: Colors.white,
+                                ),
                               ),
                               onPressed: () {
                                 urlLauncher.launch(kAppRepo);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/app_theme.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 
 class CAppBar extends StatelessWidget with PreferredSizeWidget {
@@ -33,11 +34,17 @@ class CAppBar extends StatelessWidget with PreferredSizeWidget {
                     if (!hideAppName!)
                       Text(
                         kAppName,
-                        style: TextStyle(fontSize: 10),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: themed(context, dark: Colors.white, light: Colors.black),
+                        ),
                       ),
                     Text(
                       title ?? "",
-                      style: TextStyle(fontSize: 15),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: themed(context, dark: Colors.white, light: Colors.black),
+                      ),
                     ),
                   ],
                 ),

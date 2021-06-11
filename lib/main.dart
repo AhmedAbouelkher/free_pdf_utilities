@@ -8,6 +8,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:window_size/window_size.dart';
 
+import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_tools.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/shared_prefs_utils.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
@@ -29,7 +30,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PreferenceUtils.init();
 
-  await Hive.initFlutter(kAppName);
+  await Hive.initDB();
 
   Hive.registerAdapter(PageOrientationEnumAdapter());
   Hive.registerAdapter(PdfPageFormatEnumAdapter());
@@ -38,6 +39,13 @@ void main() async {
   Hive.registerAdapter(PDFCompressionExportOptionsAdapter());
   Hive.registerAdapter(ImageTypeAdapter());
   Hive.registerAdapter(ExportMethodAdapter());
+
+  //Clearing temp generated PDF files from the current device.
+  clearTempGeneratedCache().then((_) {
+    log("`.generated` directory was cleared");
+  }).catchError((e) {
+    log("Error while clearing `.generated` in `clearTempGeneratedCache()` $e");
+  });
 
   try {
     await SettingService.init();
@@ -59,7 +67,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     var _settingBox = SettingService.box;
     if (_settingBox == null) return ErrorDBScreen();
-    // return ErrorDBScreen();
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppSettingsProvider()),

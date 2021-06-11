@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart' as urlLauncher;
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/Notifiers/toasts.dart';
@@ -136,7 +137,6 @@ class _CompressPDFScreenState extends State<CompressPDFScreen> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Icon(CupertinoIcons.doc_richtext, size: _size.height / 2),
                         SvgPicture.asset(
                           Assets.myFilesSVG,
                           height: _size.height / 2.5,
@@ -554,16 +554,16 @@ class _DartCompressionDisableAlertDialog extends StatelessWidget {
       title: Text("Pure Dart Compression is disabled"),
       contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0.0),
       content: Text(
-        '''Because the Dart compression algorithm effeicency is too low, using it is disabled right now.'''
+        '''Because the Dart compression algorithm efficiency is too low, using it is disabled right now.'''
         '''\n'''
-        '''If you beleive you can help us to create a powerful algorithm, create a new PR.''',
+        '''If you believe you can help us to create a powerful algorithm, create a new PR.''',
       ),
       actions: [
         TextButton.icon(
-          icon: Icon(FontAwesomeIcons.github, color: Colors.white),
+          icon: Icon(FontAwesomeIcons.github),
           label: const Text(
             "Go to Github",
-            style: TextStyle(fontWeight: FontWeight.normal, color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.normal),
           ),
           onPressed: () {
             Navigator.of(context).pop();
@@ -740,7 +740,12 @@ class _RadioOption<T> extends StatelessWidget {
                   constraints: BoxConstraints(maxWidth: _size.width / 2.0, minWidth: 0),
                   child: Text(
                     title,
-                    style: TextStyle(fontSize: 12, color: !enabled ? Colors.white60 : null),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: !enabled
+                          ? themed(context, dark: Colors.white60, light: Colors.black54)
+                          : themed(context, light: Colors.black),
+                    ),
                   ),
                 ),
                 details ?? const SizedBox(),

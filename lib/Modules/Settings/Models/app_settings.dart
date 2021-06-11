@@ -156,8 +156,7 @@ class SettingsThemeMode {
     } else if (themeMode == SettingsThemeMode.dark) {
       return ThemeMode.dark;
     } else {
-      //TODO: [theme] Change to `ThemeMode.system` when finishing the ligth mode theme.
-      return ThemeMode.dark;
+      return ThemeMode.system;
     }
   }
 

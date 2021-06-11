@@ -7,7 +7,7 @@ import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_tools.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/command_line_tools.dart' as clt;
 import 'package:free_pdf_utilities/Modules/Common/Utils/exception.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/PNG_TO_PDF/pdf_assets_controller.dart';
 
@@ -108,7 +108,7 @@ class PDFCompressionController extends AssetsController {
     if (_isExportMethodPython) {
       try {
         final _level = _options.level ?? CompressionLevel.level2;
-        final file = await PythonCompressionCLController.compress(_tempPDFFile, level: _level);
+        final file = await clt.compress(_tempPDFFile, level: _level);
         final _compressionFileSize = await file.internal.sizeInBytes();
         _compressionSummery =
             CompressionSummery(originalSize: _originalFileSize, compressionSize: _compressionFileSize);
@@ -138,7 +138,7 @@ class PDFCompressionController extends AssetsController {
     }
   }
 
-  ///Checks the resteration feature availability on the current platform.
+  ///Checks the restoration feature availability on the current platform.
   Future<bool> isRasterFeatureAvailable() async {
     var printingInfo = await Printing.info();
     return printingInfo.canRaster;
@@ -148,14 +148,14 @@ class PDFCompressionController extends AssetsController {
   ///
   ///Check out: [ghostscript.com](https://www.ghostscript.com/download.html)
   Future<bool> isGhostScriptAvailable() {
-    return PythonCompressionCLController.isGhostScriptAvailable();
+    return clt.isGhostScriptAvailable();
   }
 
   ///Checks for `Python` availability.
   ///
   ///Check out: [python.org](https://www.python.org/)
   Future<bool> isPythonAvailable() {
-    return PythonCompressionCLController.isPythonAvailable();
+    return clt.isPythonAvailable();
   }
 
   ///Checks for `GhostScript` and `Python` availability.
@@ -165,8 +165,7 @@ class PDFCompressionController extends AssetsController {
   ///- isPythonAvailable()
   ///
   Future<bool> isPythonCompressionServiceAvailable() async {
-    return (await PythonCompressionCLController.isPythonAvailable() &&
-        await PythonCompressionCLController.isGhostScriptAvailable());
+    return (await clt.isPythonAvailable() && await clt.isGhostScriptAvailable());
   }
 
   @override
@@ -237,7 +236,7 @@ Future<Uint8List> _generatePDFDocument(_PDFCompressionControllerThreading dataLo
       ..generate(_doc)
       ..postProcess(_doc);
   }
-  //Generating the acual PDF data as `Uint8List`
+  //Generating the actual PDF data as `Uint8List`
   final _data = await _doc.document.save();
 
   return _data;

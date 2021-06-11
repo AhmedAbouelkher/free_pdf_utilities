@@ -25,6 +25,15 @@ DialogTheme get _dialogTheme {
   );
 }
 
+DialogTheme get _lightDialogTheme {
+  return DialogTheme(
+    shape: _roundedShape,
+    backgroundColor: ThemeData.light().scaffoldBackgroundColor,
+    titleTextStyle: ThemeData.light().textTheme.headline1,
+    contentTextStyle: ThemeData.light().textTheme.bodyText1,
+  );
+}
+
 ThemeData darkTheme() {
   return ThemeData.dark().copyWith(
     toggleableActiveColor: Colors.blue,
@@ -58,14 +67,15 @@ ThemeData darkTheme() {
 
 ThemeData lightTheme() {
   return ThemeData(
+    cardColor: Colors.black54,
     brightness: Brightness.light,
     dividerColor: Colors.black12,
+    scaffoldBackgroundColor: Color(0xfff7f7f7),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         primary: Colors.grey,
-        backgroundColor: Colors.grey[850],
         side: BorderSide(
-          color: Colors.grey[800]!,
+          color: Colors.grey[400]!,
         ),
       ),
     ),
@@ -74,7 +84,7 @@ ThemeData lightTheme() {
       foregroundColor: Colors.white,
     ),
     textButtonTheme: _textButtonTheme,
-    dialogTheme: _dialogTheme,
+    dialogTheme: _lightDialogTheme,
     appBarTheme: AppBarTheme(
       color: Color(0xFFF6F4F6),
       elevation: 0.0,
@@ -84,4 +94,11 @@ ThemeData lightTheme() {
     ),
     visualDensity: VisualDensity.adaptivePlatformDensity,
   );
+}
+
+T? themed<T>(BuildContext context, {T? dark, T? light}) {
+  assert(dark != null || light != null);
+  var _theme = Theme.of(context);
+  final _isDark = _theme.brightness == Brightness.dark;
+  return _isDark ? dark : light;
 }

@@ -11,16 +11,13 @@ const Duration kDuration = const Duration(milliseconds: 200);
 const kPythonDownload = "https://www.python.org/downloads/";
 const kGhostScriptDownload = "https://www.ghostscript.com/download/gsdnld.html";
 
-Future<Directory> appDocumentsDirectory() async {
-  final _path = await getApplicationDocumentsDirectory();
-  return Directory(join(_path.path, kAppName));
-}
-
 class Scripts {
   static String _scriptsDirPath = "https://raw.githubusercontent.com/AhmedAbouelkher/free_pdf_utilities/master/scripts";
   static Uri pythonCompression = Uri.parse(join(_scriptsDirPath, "pdf_compressor.py"));
 }
 
+///App assets source.
+///
 ///Credits:
 /// - SVGs: [unDraw.co](https://undraw.co/)
 class Assets {

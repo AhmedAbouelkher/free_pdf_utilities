@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/app_theme.dart';
 
 ///Displays a screen hint with an `SVG` image and a hint `title`.
 class ToolHintScreen extends StatelessWidget {
@@ -26,11 +27,13 @@ class ToolHintScreen extends StatelessWidget {
           height: MediaQuery.of(context).size.height / 2,
         ),
         SizedBox(height: 30),
-        Text(title,
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.white70,
-            ).merge(titleStyle)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            color: themed(context, dark: Colors.white70, light: Colors.black54),
+          ).merge(titleStyle),
+        ),
       ],
     );
   }

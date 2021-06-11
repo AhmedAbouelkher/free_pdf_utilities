@@ -35,7 +35,7 @@ abstract class AssetsController {
             SizedBox(width: 5),
             TextButton(
               onPressed: () {
-                CommandLineController.openDocument(filePath);
+                openDocument(filePath);
               },
               child: Text(
                 "Open File",

@@ -13,6 +13,7 @@ class GeneralSettingsTap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final _appSettings = context.watch<AppSettingsProvider>().appSettings();
+
     return ListView(
       children: [
         Text('General', style: Theme.of(context).textTheme.headline6),
@@ -22,9 +23,7 @@ class GeneralSettingsTap extends StatelessWidget {
             'Select a theme or switch according to system settings..',
             style: TextStyle(fontSize: 12),
           ),
-          //TODO: [theme] change default back to `SettingsThemeMode.system`.
           title: DropDownListTile<String>(
-            enabled: false,
             title: "App Theme",
             initialValue: _appSettings.themeMode ?? SettingsThemeMode.dark,
             options: const [

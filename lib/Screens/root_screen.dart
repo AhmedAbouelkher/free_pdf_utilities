@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:free_pdf_utilities/Modules/Common/Utils/app_theme.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:responsive_grid/responsive_grid.dart';
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
@@ -53,7 +55,10 @@ class _RootScreenState extends State<RootScreen> {
         tag: "CAppBar_title",
         child: Text(
           kAppName,
-          style: TextStyle(fontSize: 15),
+          style: TextStyle(
+            fontSize: 15,
+            color: themed(context, dark: Colors.white, light: Colors.black),
+          ),
         ),
       ),
       actions: [

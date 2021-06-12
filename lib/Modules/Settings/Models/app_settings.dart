@@ -188,7 +188,9 @@ enum PageOrientationEnum {
   @HiveField(0)
   Landscape,
   @HiveField(1)
-  Portrait
+  Portrait,
+  @HiveField(3)
+  Auto,
 }
 
 @HiveType(typeId: 33)
@@ -221,9 +223,9 @@ PdfPageFormat? getPdfPageFormat(PdfPageFormatEnum? pageFormatEnum) {
   }
 }
 
-pw.PageOrientation? getPageOrientation(PageOrientationEnum? pageOrientationEum) {
-  if (pageOrientationEum == null) return null;
-  switch (pageOrientationEum) {
+pw.PageOrientation? getPageOrientation(PageOrientationEnum? pageOrientationEnum) {
+  if (pageOrientationEnum == null) return null;
+  switch (pageOrientationEnum) {
     case PageOrientationEnum.Landscape:
       return pw.PageOrientation.landscape;
     default:

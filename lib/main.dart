@@ -19,8 +19,9 @@ import 'Modules/Common/Utils/app_theme.dart';
 import 'Modules/PDFServices/CompressPDF/pdf_compression_controller.dart';
 import 'Modules/Settings/settings_provider.dart';
 
-//TODO: Implement light mode
-//TODO: fix grammar errors
+//TODO: Implement light mode.
+//TODO: fix grammar errors.
+//TODO: Remove PDF pages margin.
 
 void main() async {
   if (Platform.isIOS || Platform.isAndroid) {
@@ -49,6 +50,7 @@ void main() async {
 
   try {
     await SettingService.init();
+    log("Local DB Path: ${await appStorageDirectory()}");
   } catch (e) {
     print("There was an issue opening the DB | Details: $e");
   }

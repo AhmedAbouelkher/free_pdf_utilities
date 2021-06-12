@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/exception.dart';
 import 'package:pdf/widgets.dart' as pw;
+// ignore: implementation_imports
+import 'package:pdf/src/pdf/page_format.dart';
 
 import 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Settings/Models/app_settings.dart';
@@ -17,6 +19,7 @@ export 'package:pdf/src/pdf/page_format.dart' show PdfPageFormat;
 
 //TODO: [Bug] the memory usage become very high when picking files and does't decrease after releasing files.
 //TODO: document
+//TODO: add clear data and can make new pdf
 
 const String kImagesLabel = '@_kImagesLabel';
 
@@ -41,15 +44,44 @@ class _PDFAssetsControllerThreading {
 Future<Uint8List> _generatePDFOnAnotherThread(_PDFAssetsControllerThreading dataLoader) async {
   //*Creating new document
   final _doc = pw.Document();
+
+  double _pxToCM(int px, double dpi) {
+    return px * (2.54 / dpi) * PdfPageFormat.cm;
+  }
+
   for (var image in dataLoader.images) {
     //Generating memory image
     final _file = await image.internal.readAsBytes();
     final _memoryImage = pw.MemoryImage(_file);
+    //TODO: add `original` page format option to render the page with the same size as the original image.
+    //NEEDS MORE WORK
+    // ORIGIN BUG
+    //? Pixels to Centimeters Formula: centimeters = pixels * ( 2.54 / PPI )
+
+    PdfPageFormat? _pageFormate;
+    // var _isOriginalSize = dataLoader.pdfExportOptions.pageFormat == PdfPageFormatEnum.Original;
+    // if (_isOriginalSize) {
+    //   final _width = _memoryImage.width;
+    //   final _height = _memoryImage.height;
+    //   final _dpi = _memoryImage.dpi ?? PdfPageFormat.inch;
+    //   var size = Size(
+    //     _pxToCM(_width!, _dpi),
+    //     _pxToCM(_height!, _dpi),
+    //   );
+    //   print(size);
+    //   _pageFormate = getPdfPageFormat(
+    //     PdfPageFormatEnum.Original,
+    //     size,
+    //   );
+    // } else {
+    // }
+    _pageFormate = getPdfPageFormat(dataLoader.pdfExportOptions.pageFormat);
 
     //Generating new page with `orientation`and `pageFormat`, then adding it to the document.
     pw.Page(
       orientation: getPageOrientation(dataLoader.pdfExportOptions.pageOrientation),
-      pageFormat: getPdfPageFormat(dataLoader.pdfExportOptions.pageFormat),
+      pageFormat: _pageFormate,
+      margin: pw.EdgeInsets.zero,
       build: (pw.Context context) {
         return pw.Center(child: pw.Image(_memoryImage));
       },
@@ -57,7 +89,7 @@ Future<Uint8List> _generatePDFOnAnotherThread(_PDFAssetsControllerThreading data
       ..generate(_doc)
       ..postProcess(_doc);
   }
-  //Generating the acual PDF data as `Uint8List`
+  //Generating the actual PDF data as `Uint8List`
   final _data = await _doc.document.save();
   return _data;
 }
@@ -84,7 +116,7 @@ class PDFAssetsController extends AssetsController {
   }
 
   void _generateDocumentExportName() {
-    final String _time = DateTime.now().format(DateTimeFormats.europeanAbbr);
+    final String _time = DateTime.now().format(DateTimeFormats.americanAbbr);
     _savedDocumentName = 'Free PDF Utilities-$_time.pdf';
   }
 
@@ -105,6 +137,8 @@ class PDFAssetsController extends AssetsController {
     //* Generating PDF file on another isolate thread
     final _generatedData =
         await compute<_PDFAssetsControllerThreading, Uint8List>(_generatePDFOnAnotherThread, _dataLoader);
+
+    //TODO: `PDF` extension has to be set even if the user removed it in export renaming
 
     final _mimeType = "application/pdf";
     final file = XFile.fromData(_generatedData, name: _savedDocumentName, mimeType: _mimeType);

@@ -50,6 +50,8 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
     super.dispose();
   }
 
+  bool _preview = false;
+
   @override
   Widget build(BuildContext context) {
     final _size = MediaQuery.of(context).size;
@@ -114,14 +116,19 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         //TODO: Create and document better `crossAxisCount` formula.
                         crossAxisCount: _size.width ~/ 150,
-                        childAspectRatio: (140 / 210),
-                        crossAxisSpacing: 10.0,
-                        mainAxisSpacing: 10.0,
+                        childAspectRatio: (210 / 300),
+                        crossAxisSpacing: 15.0,
+                        mainAxisSpacing: 15.0,
                       ),
                       itemBuilder: (context, index) {
                         final _image = _images[index];
                         return PDFImageItem(
                           pdfFile: _image,
+                          onPreview: () {
+                            setState(() {
+                              _preview = true;
+                            });
+                          },
                           onRemove: () async {
                             final _result = await showDialog<bool>(
                               context: context,
@@ -139,7 +146,8 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
             if (_isLoading) ...[
               Positioned.fill(child: Container(color: Colors.black54)),
               Center(child: CircularProgressIndicator.adaptive()),
-            ]
+            ],
+            if (_preview) ImagesPreview(),
           ],
         ),
       ),
@@ -176,7 +184,7 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
   Widget _renderDismissAlertDialog() {
     return AlertDialog(
       title: const Text("Are you sure you want to discard changes?"),
-      content: Text('This will remove all your pregress so far.'),
+      content: Text('This will remove all your progress so far.'),
       buttonPadding: const EdgeInsets.all(15),
       actions: <Widget>[
         PlatformItemsSwitcher(
@@ -252,6 +260,85 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           iconSize: 18,
         );
       },
+    );
+  }
+}
+
+//TODO: Create preview as overlay.
+//TODO: Create a controller (or something) to show images.
+class ImagesPreview extends StatefulWidget {
+  @override
+  _ImagesPreviewState createState() => _ImagesPreviewState();
+}
+
+class _ImagesPreviewState extends State<ImagesPreview> {
+  @override
+  Widget build(BuildContext context) {
+    final _size = MediaQuery.of(context).size;
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black54,
+        child: Column(
+          children: [
+            SizedBox(height: 10),
+            Expanded(
+              child: Image.network(
+                  "https://scontent.fcai10-1.fna.fbcdn.net/v/t1.6435-9/198992596_316982166578905_875431866863635723_n.jpg?_nc_cat=103&ccb=1-3&_nc_sid=8bfeb9&_nc_ohc=xIvSrwgGZagAX8y77Yn&tn=YBVD6yR4FySm-w2s&_nc_ht=scontent.fcai10-1.fna&oh=dce32dd89af9cdf21dee4c88c68023fc&oe=60CA16FD"),
+            ),
+            SizedBox(height: 20),
+            Container(
+              color: Colors.grey[850],
+              // height: _size.height * 0.09,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5.0),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: AlignmentDirectional(0.1, 0),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.close),
+                            onPressed: () {},
+                          ),
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: 10,
+                              maxWidth: _size.width * 0.4,
+                            ),
+                            child: Text(
+                              "Ahmed Mahmoud.png",
+                              style: TextStyle(
+                                fontSize: 12,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                    Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: () {},
+                            icon: Icon(Icons.arrow_back_ios),
+                          ),
+                          IconButton(
+                            onPressed: null,
+                            icon: Icon(Icons.arrow_forward_ios),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
     );
   }
 }

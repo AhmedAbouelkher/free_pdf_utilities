@@ -1,4 +1,8 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+
 import 'package:free_pdf_utilities/Modules/Common/Utils/Models/assets_controller.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 
@@ -39,57 +43,79 @@ class _PDFImageItemState extends State<PDFImageItem> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: non_constant_identifier_names
+    final _8pxBorderRadius = BorderRadius.circular(5.0);
     return Material(
-      child: InkWell(
-        hoverColor: Colors.transparent,
-        onTap: widget.onTap ?? () => null,
-        onLongPress: widget.onLongPress,
+      elevation: 0.0,
+      color: _isHoverActive ? Colors.white10 : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: _8pxBorderRadius,
+      ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.zoomIn,
         onHover: (value) {
-          value ? _onHoverStart() : _onHoverEnd();
-          setState(() => _isHoverActive = value);
+          // print(value);
         },
-        child: Container(
-          // height: 210,
-          // width: 140,
-          decoration: BoxDecoration(
-            // color: _isHoverActive ? Colors.black : Colors.white,
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8.0),
-            boxShadow: [
-              BoxShadow(
-                color: _isHoverActive ? Colors.black : Colors.transparent,
-                spreadRadius: 1,
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Image.file(widget.pdfFile.internal.toFile()),
-              ),
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  duration: kDuration,
-                  opacity: _isHoverActive ? 1.0 : 0.0,
-                  // opacity: 1.0,
-                  child: Visibility(
-                    visible: _isHoverActive,
-                    // visible: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: AnimatedContainer(
-                      duration: kDuration,
+        child: InkWell(
+          hoverColor: Colors.transparent,
+          onTap: widget.onTap ?? () {},
+          onLongPress: widget.onLongPress,
+          onHover: (value) {
+            value ? _onHoverStart() : _onHoverEnd();
+            setState(() => _isHoverActive = value);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Expanded(
+                  child: AspectRatio(
+                    aspectRatio: (210 / 282),
+                    child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Colors.black45,
+                        // color: _isHoverActive ? Colors.black : Colors.white,
+                        color: Colors.white,
+                        borderRadius: _8pxBorderRadius,
                       ),
-                      child: _renderHoverContents(),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image.file(widget.pdfFile.internal.toFile()),
+                          ),
+                          Positioned.fill(
+                            child: AnimatedOpacity(
+                              // opacity: 1.0,
+                              opacity: _isHoverActive ? 1.0 : 0.0,
+                              duration: kDuration,
+                              child: Visibility(
+                                // visible: true,
+                                visible: _isHoverActive,
+                                maintainAnimation: true,
+                                maintainState: true,
+                                child: AnimatedContainer(
+                                  duration: kDuration,
+                                  color: Colors.black26,
+                                  child: _renderHoverContents(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                SizedBox(height: 10),
+                ClippedDottedText(
+                  Text(
+                    widget.pdfFile.name ?? "-",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 10),
+                  ),
+                  maxLength: 20,
+                )
+              ],
+            ),
           ),
         ),
       ),
@@ -99,48 +125,75 @@ class _PDFImageItemState extends State<PDFImageItem> {
   Widget _renderHoverContents() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(5.0, 12.0, 5.0, 20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            widget.pdfFile.name ?? "-",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          // alignment: Alignment.bottomCenter,
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(99.0),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: widget.onPreview,
-                    child: const Text(
-                      "Preview",
-                      style: TextStyle(color: Colors.blue, fontSize: 11),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 140 / 2,
-                    child: Divider(),
-                  ),
-                  TextButton(
-                    onPressed: widget.onRemove,
-                    child: const Text(
-                      "Remove",
-                      style: TextStyle(color: Colors.red, fontSize: 11),
-                    ),
-                  ),
-                ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: widget.onPreview,
+                icon: Icon(CupertinoIcons.eye),
+                splashRadius: 15,
+                iconSize: 18,
               ),
-            ),
+              IconButton(
+                onPressed: widget.onRemove,
+                icon: Icon(CupertinoIcons.trash),
+                splashRadius: 15,
+                iconSize: 18,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+}
+
+///Get clipped text if the input length excedes `maxLength`
+class ClippedDottedText extends StatelessWidget {
+  ///The `Text()` widget.
+  final Text text;
+
+  ///Determins clipping or not.
+  ///
+  ///defaults to `true`
+  final bool clip;
+
+  ///The displayed text maximum length.
+  ///
+  ///defaults to `double.infinity`
+  final int? maxLength;
+
+  const ClippedDottedText(
+    this.text, {
+    Key? key,
+    this.maxLength,
+    this.clip = true,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    bool _clipped = clip && text.data!.length >= (maxLength ?? double.infinity);
+    if (_clipped) {
+      final substring = text.data!.substring(0, maxLength);
+      return Text(
+        substring + "...",
+        textAlign: text.textAlign,
+        textDirection: text.textDirection,
+        softWrap: text.softWrap,
+        style: text.style,
+        locale: text.locale,
+        overflow: text.overflow,
+      );
+    }
+    return text;
   }
 }

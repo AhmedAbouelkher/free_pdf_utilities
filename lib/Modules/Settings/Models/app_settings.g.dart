@@ -66,6 +66,8 @@ class PageOrientationEnumAdapter extends TypeAdapter<PageOrientationEnum> {
         return PageOrientationEnum.Landscape;
       case 1:
         return PageOrientationEnum.Portrait;
+      case 3:
+        return PageOrientationEnum.Auto;
       default:
         return PageOrientationEnum.Landscape;
     }
@@ -79,6 +81,9 @@ class PageOrientationEnumAdapter extends TypeAdapter<PageOrientationEnum> {
         break;
       case PageOrientationEnum.Portrait:
         writer.writeByte(1);
+        break;
+      case PageOrientationEnum.Auto:
+        writer.writeByte(3);
         break;
     }
   }

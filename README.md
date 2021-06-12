@@ -19,7 +19,7 @@ A totally free, open source and simple [Flutter](https://flutter.dev) desktop ap
 
 | | | |
 |:-------------------------:|:-------------------------:|:-------------------------:|
-|<img width="1700"  src="https://user-images.githubusercontent.com/56558577/121251309-03932280-c8a7-11eb-8dc0-221457e2247f.png"> |  <img width="1700"  src="https://user-images.githubusercontent.com/56558577/121251299-01c95f00-c8a7-11eb-9e7f-78d384f138d9.png">|<img width="1700" src="https://user-images.githubusercontent.com/56558577/121251315-042bb900-c8a7-11eb-9504-563303d799cd.png">|
+|<img width="1700"  src="https://user-images.githubusercontent.com/56558577/121251309-03932280-c8a7-11eb-8dc0-221457e2247f.png"> |  <img width="1700"  src="https://user-images.githubusercontent.com/56558577/121251299-01c95f00-c8a7-11eb-9e7f-78d384f138d9.png">|<img width="1700" src="https://user-images.githubusercontent.com/56558577/121251319-055ce600-c8a7-11eb-804b-2f0c500e78c8.png">|
 |<img width="1700" src="https://user-images.githubusercontent.com/56558577/121251315-042bb900-c8a7-11eb-9504-563303d799cd.png">
 
 

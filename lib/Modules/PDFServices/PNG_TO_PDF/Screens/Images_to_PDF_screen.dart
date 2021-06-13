@@ -3,17 +3,18 @@ import 'dart:io';
 import 'package:filesize/filesize.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/images_preview.dart';
+import 'package:provider/provider.dart';
+
 import 'package:free_pdf_utilities/Modules/Common/Utils/Notifiers/toasts.dart';
 import 'package:free_pdf_utilities/Modules/Common/Utils/constants.dart';
 import 'package:free_pdf_utilities/Modules/PDFServices/Widgets/pdf_image_item.dart';
-import 'package:free_pdf_utilities/Modules/Widgets/custom_app_bar.dart';
-import 'package:free_pdf_utilities/Modules/Widgets/hint_screen.dart';
-import 'package:free_pdf_utilities/Modules/Widgets/platform_items_switcher.dart';
-import 'package:provider/provider.dart';
-
 import 'package:free_pdf_utilities/Modules/Settings/Screens/Settings/settings_screen.dart';
 import 'package:free_pdf_utilities/Modules/Settings/settings_provider.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/custom_app_bar.dart';
 import 'package:free_pdf_utilities/Modules/Widgets/dropDown_listTile.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/hint_screen.dart';
+import 'package:free_pdf_utilities/Modules/Widgets/platform_items_switcher.dart';
 
 import '../pdf_assets_controller.dart';
 
@@ -49,8 +50,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
     _assetsController.dispose();
     super.dispose();
   }
-
-  bool _preview = false;
 
   @override
   Widget build(BuildContext context) {
@@ -125,9 +124,13 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
                         return PDFImageItem(
                           pdfFile: _image,
                           onPreview: () {
-                            setState(() {
-                              _preview = true;
-                            });
+                            ImagesPreview.showOverlay(
+                              context,
+                              preview: ImagesPreview(
+                                images: _images,
+                                initialIndex: index,
+                              ),
+                            );
                           },
                           onRemove: () async {
                             final _result = await showDialog<bool>(
@@ -147,7 +150,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
               Positioned.fill(child: Container(color: Colors.black54)),
               Center(child: CircularProgressIndicator.adaptive()),
             ],
-            if (_preview) ImagesPreview(),
           ],
         ),
       ),
@@ -260,85 +262,6 @@ class _PNGtoPDFScreenState extends State<PNGtoPDFScreen> {
           iconSize: 18,
         );
       },
-    );
-  }
-}
-
-//TODO: Create preview as overlay.
-//TODO: Create a controller (or something) to show images.
-class ImagesPreview extends StatefulWidget {
-  @override
-  _ImagesPreviewState createState() => _ImagesPreviewState();
-}
-
-class _ImagesPreviewState extends State<ImagesPreview> {
-  @override
-  Widget build(BuildContext context) {
-    final _size = MediaQuery.of(context).size;
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black54,
-        child: Column(
-          children: [
-            SizedBox(height: 10),
-            Expanded(
-              child: Image.network(
-                  "https://scontent.fcai10-1.fna.fbcdn.net/v/t1.6435-9/198992596_316982166578905_875431866863635723_n.jpg?_nc_cat=103&ccb=1-3&_nc_sid=8bfeb9&_nc_ohc=xIvSrwgGZagAX8y77Yn&tn=YBVD6yR4FySm-w2s&_nc_ht=scontent.fcai10-1.fna&oh=dce32dd89af9cdf21dee4c88c68023fc&oe=60CA16FD"),
-            ),
-            SizedBox(height: 20),
-            Container(
-              color: Colors.grey[850],
-              // height: _size.height * 0.09,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5.0),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Align(
-                      alignment: AlignmentDirectional(0.1, 0),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.close),
-                            onPressed: () {},
-                          ),
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minWidth: 10,
-                              maxWidth: _size.width * 0.4,
-                            ),
-                            child: Text(
-                              "Ahmed Mahmoud.png",
-                              style: TextStyle(
-                                fontSize: 12,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            onPressed: () {},
-                            icon: Icon(Icons.arrow_back_ios),
-                          ),
-                          IconButton(
-                            onPressed: null,
-                            icon: Icon(Icons.arrow_forward_ios),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
     );
   }
 }

@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 
 const kAppName = "Free PDF Utilities";
 const kAppRepo = "https://github.com/AhmedAbouelkher/free_pdf_utilities";

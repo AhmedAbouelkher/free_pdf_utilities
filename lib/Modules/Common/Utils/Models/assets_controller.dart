@@ -62,8 +62,11 @@ class CxFile {
   ///The parent `XFile`.
   final XFile internal;
 
-  ///Get File name
+  ///Get File name (ex: `image_name`)
   final String? name;
+
+  ///File basename (ex: `image_name.png`)
+  final String? baseName;
 
   ///Get File meta data (if provided)
   final Map<String, dynamic>? metaData;
@@ -90,6 +93,7 @@ class CxFile {
     this.metaData,
     this.updatedAt,
     this.size,
+    this.baseName,
   });
 }
 
@@ -108,6 +112,7 @@ extension XfileToFile on XFile {
       internal: this,
       metaData: metaData,
       name: _name,
+      baseName: path.basename(this.path),
     );
   }
 
@@ -124,6 +129,7 @@ extension XfileToFile on XFile {
       metaData: metaData,
       size: (await this.readAsBytes()).length,
       updatedAt: await this.lastModified(),
+      baseName: path.basename(this.path),
     );
   }
 
